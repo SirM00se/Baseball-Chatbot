@@ -16,7 +16,11 @@ def fetchinfo(url):
     soup = BeautifulSoup(response.content, 'html.parser')
     paragraphs = soup.find_all("p")
     for paragraph in paragraphs:
-        df.loc[len(df)] = [url, paragraph]
+        for a in paragraph.find_all("a"):
+            a.decompose()
+        clean_text = paragraph.get_text(strip=True)
+        if clean_text:
+            df.loc[len(df)] = [url, clean_text]
     print("page complete")
 service = Service(executable_path='chromedriver.exe')
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
