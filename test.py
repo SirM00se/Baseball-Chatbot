@@ -14,12 +14,14 @@ chrome_options.add_argument('--disable-dev-shm-usage')
 def fetchinfo(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-    paragraphs = soup.find_all("p")
+    paragraphs = soup.find_all(["p","h5"])
     strong = ""
     for paragraph in paragraphs:
         for a in paragraph.find_all("a"):
             a.decompose()
-        if paragraph.find('strong'):
+        if paragraph.name == 'h5':
+            strong = paragraph.text
+        elif paragraph.find('strong'):
             strong = paragraph.get_text(strip=True)
         else:
             clean_text = paragraph.get_text(strip=True)
