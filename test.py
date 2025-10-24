@@ -11,14 +11,14 @@ chrome_options = Options()
 chrome_options.add_argument("--headless")
 chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
-def fetchinfo(url):
-    tag = url[35:]
+def fetchinfo(url):#collects text data
+    tag = url[35:]#collects tag
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     paragraphs = soup.find_all(["p","h5"])
     strong = ""
     for paragraph in paragraphs:
-        for a in paragraph.find_all("a"):
+        for a in paragraph.find_all("a"):#checks if paragraph contains a hyperlink and removes it
             a.decompose()
         if paragraph.name == 'h5':
             strong = paragraph.text
@@ -26,7 +26,7 @@ def fetchinfo(url):
             strong = paragraph.get_text(strip=True)
         else:
             clean_text = paragraph.get_text(strip=True)
-            if clean_text:
+            if clean_text:#adds text to csv file
                 if strong == "":
                     df.loc[len(df)] = [url, clean_text, tag]
                 else:
@@ -40,8 +40,8 @@ baseurl = f'https://www.mlb.com/glossary/rules'
 urls = []
 driver.get(baseurl)
 wait = WebDriverWait(driver, 10)
-link_elements = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
-for link in link_elements:
+link_elements = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")#finds all links on basepage
+for link in link_elements:#appends href to url
     href = link.get_attribute("href")
     urls.append(href)
 for url in urls:
