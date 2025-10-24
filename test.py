@@ -12,6 +12,7 @@ chrome_options.add_argument("--headless")
 chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
 def fetchinfo(url):
+    tag = url[35:]
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
     paragraphs = soup.find_all(["p","h5"])
@@ -27,14 +28,14 @@ def fetchinfo(url):
             clean_text = paragraph.get_text(strip=True)
             if clean_text:
                 if strong == "":
-                    df.loc[len(df)] = [url, clean_text]
+                    df.loc[len(df)] = [url, clean_text, tag]
                 else:
-                    df.loc[len(df)] = [url, strong+": "+clean_text]
+                    df.loc[len(df)] = [url, strong+": "+clean_text, tag]
                     strong = ""
     print("page complete")
 service = Service(executable_path='chromedriver.exe')
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-df = pd.DataFrame(columns=["url", "text"])
+df = pd.DataFrame(columns=["url", "text", "tag"])
 baseurl = f'https://www.mlb.com/glossary/rules'
 urls = []
 driver.get(baseurl)
