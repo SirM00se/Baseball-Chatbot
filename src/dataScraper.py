@@ -46,4 +46,4 @@ for link in link_elements:#appends href to url
     urls.append(href)
 for url in urls:
     fetchinfo(url)
-df.to_csv('baseballrules.csv', index=False)
+df.to_csv("../data/baseballrules.csv", index=False)
