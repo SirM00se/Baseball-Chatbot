@@ -3,7 +3,7 @@ import sqlite3
 
 df = pd.read_csv("../data/vector_metadata.csv")
 
-conn = sqlite3.connect("../baseball_vectors.db")
+conn = sqlite3.connect("../databases/baseball_vectors.db")
 
 df.to_sql("rules", conn, if_exists="replace", index=False)
 
