@@ -33,7 +33,7 @@ def fetchinfo(url):#collects text data
                     df.loc[len(df)] = [url, strong+": "+clean_text, tag]
                     strong = ""
     print("page complete")
-service = Service(executable_path='chromedriver.exe')
+service = Service(executable_path='../chromedriver.exe')
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
 df = pd.DataFrame(columns=["url", "text", "tag"])
 baseurl = f'https://www.mlb.com/glossary/rules'

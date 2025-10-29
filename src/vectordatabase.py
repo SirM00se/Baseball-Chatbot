@@ -3,7 +3,7 @@ import numpy as np
 from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import faiss
-df = pd.read_csv("baseballrules.csv")
+df = pd.read_csv("../baseballrules.csv")
 model = SentenceTransformer('all-MiniLM-L6-v2')
 embeddings = model.encode(df["text"].tolist(), show_progress_bar=True, normalize_embeddings=True).astype("float32")#generates embeddings
 print("Embeddings shape:", embeddings.shape)
