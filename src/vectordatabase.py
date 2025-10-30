@@ -22,7 +22,7 @@ def load_data(csv_path: str) -> pd.DataFrame:
 # -----------------------------
 def create_embeddings(texts: list[str], model_name: str = 'all-MiniLM-L6-v2') -> np.ndarray:
     """Generate normalized embeddings for text using a SentenceTransformer model."""
-    print(f"🔄 Loading model: {model_name}")
+    print(f"Loading model: {model_name}")
     model = SentenceTransformer(model_name)
     embeddings = model.encode(
         texts,
