@@ -19,21 +19,30 @@ def create_driver(headless=True):
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     Service(executable_path='../chromedriver.exe')
-    driver = webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=chrome_options
-    )
-    return driver
+    try:
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()),
+            options=chrome_options
+        )
+        return driver
+    except Exception as e:
+        print(f"Failed to start Chrome Driver: {e}")
+        return None
 
 
 # -----------------------------
 # Collect all rule page URLs
 # -----------------------------
 def get_rule_links(driver, base_url):
-    driver.get(base_url)
-    WebDriverWait(driver, 10)
-    links = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
-    urls = [link.get_attribute("href") for link in links if link.get_attribute("href")]
+    urls = []
+    try:
+        driver.get(base_url)
+        WebDriverWait(driver, 10)
+        links = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
+        urls = [link.get_attribute("href") for link in links if link.get_attribute("href")]
+        print(f"Found {len(urls)} links on this page")
+    except Exception as e:
+        print(f"Failed to get links from {base_url}: {e}")
     return urls
 
 
@@ -42,31 +51,37 @@ def get_rule_links(driver, base_url):
 # -----------------------------
 def fetch_info(url):
     """Fetchs all paragraph text from one MLB glossary page."""
+    data = []
     tag = url[35:]
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.content, 'html.parser')
 
-    data = []  # collect rows as [url, text, tag]
-    paragraphs = soup.find_all(["p", "h5"])
-    strong = ""
+        data = []  # collect rows as [url, text, tag]
+        paragraphs = soup.find_all(["p", "h5"])
+        strong = ""
 
-    for paragraph in paragraphs:
-        for a in paragraph.find_all("a"):
-            a.decompose()
+        for paragraph in paragraphs:
+            for a in paragraph.find_all("a"):
+                a.decompose()
 
-        if paragraph.name == 'h5':
-            strong = paragraph.text
-        elif paragraph.find('strong'):
-            strong = paragraph.get_text(strip=True)
-        else:
-            clean_text = paragraph.get_text(strip=True)
-            if clean_text:
-                if strong == "":
-                    data.append([url, clean_text, tag])
-                else:
-                    data.append([url, f"{strong}: {clean_text}", tag])
-                    strong = ""
-    print(f"Finished scraping: {url}")
+            if paragraph.name == 'h5':
+                strong = paragraph.text
+            elif paragraph.find('strong'):
+                strong = paragraph.get_text(strip=True)
+            else:
+                clean_text = paragraph.get_text(strip=True)
+                if clean_text:
+                    if strong == "":
+                        data.append([url, clean_text, tag])
+                    else:
+                        data.append([url, f"{strong}: {clean_text}", tag])
+                        strong = ""
+        print(f"Finished scraping: {url}")
+    except requests.RequestException as e:
+        print(f"Request error for {url}: {e}")
+    except Exception as e:
+        print(f"Unexpected error for {url}: {e}")
     return data
 
 
