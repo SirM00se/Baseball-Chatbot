@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import faiss
+import os
 
 
 # -----------------------------
@@ -22,15 +22,34 @@ def load_data(csv_path: str) -> pd.DataFrame:
 # -----------------------------
 def create_embeddings(texts: list[str], model_name: str = 'all-MiniLM-L6-v2') -> np.ndarray:
     """Generate normalized embeddings for text using a SentenceTransformer model."""
-    print(f"🔄 Loading model: {model_name}")
-    model = SentenceTransformer(model_name)
-    embeddings = model.encode(
-        texts,
-        show_progress_bar=True,
-        normalize_embeddings=True
-    ).astype("float32")
-    print(f"Generated embeddings: {embeddings.shape}")
-    return embeddings
+    try:
+        print(f"Loading model: {model_name}")
+        model = SentenceTransformer(model_name)
+        embeddings = model.encode(
+            texts,
+            show_progress_bar=True,
+            normalize_embeddings=True
+        ).astype("float32")
+        print(f"Generated embeddings: {embeddings.shape}")
+        return embeddings
+    except TypeError as e:
+        print(f"Type error in input: {e}")
+        raise
+    except ValueError as e:
+        print(f"Value error: {e}")
+        raise
+    except RuntimeError as e:
+        print(f"Runtime error (likely GPU issue): {e}")
+        raise
+    except OSError as e:
+        print(f"Model file error: {e}")
+        raise
+    except MemoryError as e:
+        print(f"Out of memory error: {e}")
+        raise
+    except Exception as e:
+        print(f"Unexpected error during encoding: {e}")
+        raise
 
 
 # -----------------------------
@@ -38,15 +57,50 @@ def create_embeddings(texts: list[str], model_name: str = 'all-MiniLM-L6-v2') ->
 # -----------------------------
 def build_faiss_index(embeddings: np.ndarray, index_path: str) -> np.ndarray:
     """Builds a FAISS L2 index and saves it to disk."""
-    ids = np.arange(len(embeddings)).astype(np.int64)
-    dimension = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dimension)
-    index = faiss.IndexIDMap(index)
-    index.add_with_ids(embeddings, ids)
-    faiss.write_index(index, index_path)
-    print(f"Saved FAISS index to: {index_path}")
-    print(f"Total vectors in index: {index.ntotal}")
-    return ids
+    try:
+        # Validate embeddings
+        if embeddings is None or len(embeddings) == 0:
+            raise ValueError("Embeddings array is empty.")
+        if not isinstance(embeddings, np.ndarray):
+            raise TypeError("Embeddings must be a NumPy ndarray.")
+        if embeddings.dtype != np.float32:
+            raise TypeError("Embeddings dtype must be float32 for FAISS.")
+        if len(embeddings.shape) != 2:
+            raise ValueError("Embeddings must be a 2D array (n_vectors, dimension).")
+
+        # Build IDs
+        ids = np.arange(len(embeddings)).astype(np.int64)
+        dimension = embeddings.shape[1]
+
+        # Create FAISS index
+        index = faiss.IndexFlatL2(dimension)
+        index = faiss.IndexIDMap(index)
+
+        # Add embeddings
+        try:
+            index.add_with_ids(embeddings, ids)
+        except Exception as e:
+            raise RuntimeError(f"Failed to add embeddings to FAISS index: {e}")
+
+        # Ensure output directory exists
+        os.makedirs(os.path.dirname(index_path), exist_ok=True)
+
+        # Write index to disk
+        try:
+            faiss.write_index(index, index_path)
+        except Exception as e:
+            raise IOError(f"Failed to write FAISS index to '{index_path}': {e}")
+
+        print(f"Saved FAISS index to: {index_path}")
+        print(f"Total vectors in index: {index.ntotal}")
+        return ids
+
+    except (ValueError, TypeError, RuntimeError, IOError) as e:
+        print(f"Error building FAISS index: {e}")
+        raise
+    except Exception as e:
+        print(f"Unexpected error in FAISS index build: {e}")
+        raise
 
 
 # -----------------------------
@@ -54,10 +108,38 @@ def build_faiss_index(embeddings: np.ndarray, index_path: str) -> np.ndarray:
 # -----------------------------
 def save_metadata(df: pd.DataFrame, ids: np.ndarray, embeddings: np.ndarray, output_path: str):
     """Attach IDs and embeddings to the DataFrame and save as CSV."""
-    df["id"] = ids
-    df["embedding"] = embeddings.tolist()
-    df.to_csv(output_path, index=False)
-    print(f"Saved metadata to: {output_path}")
+    try:
+        # Validate inputs
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("df must be a pandas DataFrame.")
+        if not isinstance(ids, (np.ndarray, list)):
+            raise TypeError("ids must be a NumPy array or list.")
+        if not isinstance(embeddings, np.ndarray):
+            raise TypeError("embeddings must be a NumPy array.")
+        if len(df) != len(ids) or len(df) != len(embeddings):
+            raise ValueError("Length of df, ids, and embeddings must match.")
+
+        # Attach IDs and embeddings
+        df["id"] = ids
+        df["embedding"] = embeddings.tolist()
+
+        # Ensure output directory exists
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Save to CSV
+        try:
+            df.to_csv(output_path, index=False)
+        except Exception as e:
+            raise IOError(f"Failed to save CSV to '{output_path}': {e}")
+
+        print(f"Saved metadata to: {output_path}")
+
+    except (TypeError, ValueError, IOError) as e:
+        print(f"Error saving metadata: {e}")
+        raise
+    except Exception as e:
+        print(f"Unexpected error while saving metadata: {e}")
+        raise
 
 
 # -----------------------------

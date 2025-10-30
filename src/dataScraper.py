@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
+from selenium.common import NoSuchElementException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -38,9 +39,13 @@ def get_rule_links(driver, base_url):
     try:
         driver.get(base_url)
         WebDriverWait(driver, 10)
-        links = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
-        urls = [link.get_attribute("href") for link in links if link.get_attribute("href")]
-        print(f"Found {len(urls)} links on this page")
+        try:
+            links = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
+            if links is not None:
+                urls = [link.get_attribute("href") for link in links if link.get_attribute("href")]
+            print(f"Found {len(urls)} links on this page")
+        except NoSuchElementException:
+            print("Inner error: Element not found, skipping this part")
     except Exception as e:
         print(f"Failed to get links from {base_url}: {e}")
     return urls
@@ -59,6 +64,8 @@ def fetch_info(url):
 
         data = []  # collect rows as [url, text, tag]
         paragraphs = soup.find_all(["p", "h5"])
+        if not paragraphs:
+            print("No paragraphs found")
         strong = ""
 
         for paragraph in paragraphs:
@@ -69,6 +76,8 @@ def fetch_info(url):
                 strong = paragraph.text
             elif paragraph.find('strong'):
                 strong = paragraph.get_text(strip=True)
+                if not strong:
+                    print("No text found")
             else:
                 clean_text = paragraph.get_text(strip=True)
                 if clean_text:

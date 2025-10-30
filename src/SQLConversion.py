@@ -1,6 +1,6 @@
 import pandas as pd
 from sqlalchemy import create_engine
-
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, ProgrammingError, IntegrityError, ArgumentError
 
 # -----------------------------
 # Load CSV Data
@@ -8,6 +8,8 @@ from sqlalchemy import create_engine
 def load_csv_data(csv_path: str) -> pd.DataFrame:
     """Load data from a CSV file into a pandas DataFrame."""
     df = pd.read_csv(csv_path)
+    if "text" not in df.columns:
+        raise ValueError("CSV must contain a 'text' column.")
     print(f"Loaded {len(df)} rows from {csv_path}")
     return df
 
@@ -17,9 +19,22 @@ def load_csv_data(csv_path: str) -> pd.DataFrame:
 # -----------------------------
 def create_sqlite_engine(db_path: str):
     """Create and return a SQLAlchemy SQLite engine."""
-    engine = create_engine(f"sqlite:///{db_path}")
-    print(f"Connected to SQLite database at {db_path}")
-    return engine
+    try:
+        engine = create_engine(f"sqlite:///{db_path}")
+        # Test the connection immediately
+        conn = engine.connect()
+        conn.close()  # close test connection
+        print(f"Connected to SQLite database at {db_path}")
+        return engine
+    except ArgumentError as e:
+        print(f"Invalid database path or connection string: {e}")
+        raise  # re-raise if connection is critical
+    except OperationalError as e:
+        print(f"Operational error (permissions, missing folder, etc.): {e}")
+        raise
+    except Exception as e:
+        print(f"Unexpected error while creating SQLite engine: {e}")
+        raise
 
 
 # -----------------------------
@@ -27,8 +42,24 @@ def create_sqlite_engine(db_path: str):
 # -----------------------------
 def write_to_database(df: pd.DataFrame, engine, table_name: str):
     """Write a DataFrame to an SQL table, replacing it if it exists."""
-    df.to_sql(table_name, con=engine, if_exists="replace", index=False)
-    print(f"Wrote DataFrame to table '{table_name}' ({len(df)} rows).")
+    try:
+        df.to_sql(table_name, con=engine, if_exists="replace", index=False)
+        print(f"Wrote DataFrame to table '{table_name}' ({len(df)} rows).")
+    except IntegrityError as e:
+        print(f"Integrity error: {e}")
+        raise  # Fail-fast if data violates constraints
+    except OperationalError as e:
+        print(f"Operational error (connection/file issue): {e}")
+        raise
+    except ProgrammingError as e:
+        print(f"SQL/Programming error (invalid table/column names): {e}")
+        raise
+    except SQLAlchemyError as e:
+        print(f"General SQLAlchemy error: {e}")
+        raise
+    except Exception as e:
+        print(f"Unexpected error while writing DataFrame to SQL: {e}")
+        raise
 
 
 # -----------------------------
@@ -36,8 +67,13 @@ def write_to_database(df: pd.DataFrame, engine, table_name: str):
 # -----------------------------
 def close_connection(engine):
     """Dispose of the SQLAlchemy engine connection."""
-    engine.dispose()
-    print("Database connection closed.")
+    try:
+        engine.dispose()
+        print("Engine disposed successfully")
+    except SQLAlchemyError as e:
+        print(f"SQLAlchemy error while disposing engine: {e}")
+    except Exception as e:
+        print(f"Unexpected error while disposing engine: {e}")
 
 
 # -----------------------------
