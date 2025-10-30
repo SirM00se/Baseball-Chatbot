@@ -7,43 +7,99 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument('--no-sandbox')
-chrome_options.add_argument('--disable-dev-shm-usage')
-def fetchinfo(url):#collects text data
-    tag = url[35:]#collects tag
+
+
+# -----------------------------
+# Setup Selenium
+# -----------------------------
+def create_driver(headless=True):
+    chrome_options = Options()
+    if headless:
+        chrome_options.add_argument("--headless")
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    Service(executable_path='../chromedriver.exe')
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=chrome_options
+    )
+    return driver
+
+
+# -----------------------------
+# Collect all rule page URLs
+# -----------------------------
+def get_rule_links(driver, base_url):
+    driver.get(base_url)
+    WebDriverWait(driver, 10)
+    links = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
+    urls = [link.get_attribute("href") for link in links if link.get_attribute("href")]
+    return urls
+
+
+# -----------------------------
+# Extract text from one rule page
+# -----------------------------
+def fetch_info(url):
+    """Fetchs all paragraph text from one MLB glossary page."""
+    tag = url[35:]
     response = requests.get(url)
     soup = BeautifulSoup(response.content, 'html.parser')
-    paragraphs = soup.find_all(["p","h5"])
+
+    data = []  # collect rows as [url, text, tag]
+    paragraphs = soup.find_all(["p", "h5"])
     strong = ""
+
     for paragraph in paragraphs:
-        for a in paragraph.find_all("a"):#checks if paragraph contains a hyperlink and removes it
+        for a in paragraph.find_all("a"):
             a.decompose()
+
         if paragraph.name == 'h5':
             strong = paragraph.text
         elif paragraph.find('strong'):
             strong = paragraph.get_text(strip=True)
         else:
             clean_text = paragraph.get_text(strip=True)
-            if clean_text:#adds text to csv file
+            if clean_text:
                 if strong == "":
-                    df.loc[len(df)] = [url, clean_text, tag]
+                    data.append([url, clean_text, tag])
                 else:
-                    df.loc[len(df)] = [url, strong+": "+clean_text, tag]
+                    data.append([url, f"{strong}: {clean_text}", tag])
                     strong = ""
-    print("page complete")
-service = Service(executable_path='../chromedriver.exe')
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-df = pd.DataFrame(columns=["url", "text", "tag"])
-baseurl = f'https://www.mlb.com/glossary/rules'
-urls = []
-driver.get(baseurl)
-wait = WebDriverWait(driver, 10)
-link_elements = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")#finds all links on basepage
-for link in link_elements:#appends href to url
-    href = link.get_attribute("href")
-    urls.append(href)
-for url in urls:
-    fetchinfo(url)
-df.to_csv("../data/baseballrules.csv", index=False)
+    print(f"Finished scraping: {url}")
+    return data
+
+
+# -----------------------------
+# Main control function
+# -----------------------------
+def main():
+    base_url = "https://www.mlb.com/glossary/rules"
+    driver = create_driver(headless=True)
+
+    # Collect all rule page URLs
+    urls = get_rule_links(driver, base_url)
+    driver.quit()
+
+    # Collect data from each page
+    all_data = []
+    for url in urls:
+        try:
+            all_data.extend(fetch_info(url))
+        except Exception as e:
+            print(f"Failed to scrape {url}: {e}")
+
+    # Build DataFrame
+    df = pd.DataFrame(all_data, columns=["url", "text", "tag"])
+
+    # Save to CSV
+    output_path = "../data/baseballrules.csv"
+    df.to_csv(output_path, index=False)
+    print(f"\nData saved to: {output_path}")
+
+
+# -----------------------------
+# Run script
+# -----------------------------
+if __name__ == "__main__":
+    main()
