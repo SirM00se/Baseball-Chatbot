@@ -1,11 +1,16 @@
 import pandas as pd
-import sqlite3
+from sqlalchemy import create_engine
 
+# Read the CSV file into a DataFrame
 df = pd.read_csv("../data/vector_metadata.csv")
 
-conn = sqlite3.connect("../databases/baseball_vectors.db")
+# Create a SQLAlchemy engine for SQLite
+engine = create_engine("sqlite:///../databases/baseball_vectors.db")
 
-df.to_sql("rules", conn, if_exists="replace", index=False)
+# Write the DataFrame to the database
+df.to_sql("rules", con=engine, if_exists="replace", index=False)
 
-conn.close()
-print("CSV saved as SQLite database!")
+# Dispose of the engine connection
+engine.dispose()
+
+print("CSV saved as SQLite database via SQLAlchemy!")
