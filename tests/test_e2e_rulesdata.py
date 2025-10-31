@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import faiss
+import random
 
 # Paths to your pre-generated files
 INDEX_PATH = "../databases/vector_index.faiss"
@@ -22,7 +23,13 @@ def test_existing_database():
         index = faiss.IndexIDMap(index)
     assert index.ntotal == len(metadata_df), "FAISS index size mismatch with metadata."
 
-    #  test a query
+    #  test a query of the first vector
     first_vec = np.array(eval(metadata_df["embedding"].iloc[0]), dtype=np.float32).reshape(1, -1)
     distances, indices = index.search(first_vec, k=1)
     assert indices[0][0] == metadata_df["id"].iloc[0], "Query did not return the expected ID."
+    #tests a query of a random vector
+    num_vectors = index.ntotal
+    rand_idx = random.randint(0, num_vectors - 1)
+    rand_vec = np.array(eval(metadata_df["embedding"].iloc[rand_idx]), dtype=np.float32).reshape(1, -1)
+    distancesRand, indicesRand = index.search(rand_vec, k=1)
+    assert indicesRand[0][0] == metadata_df["id"].iloc[rand_idx], "Query did not return the expected ID."
