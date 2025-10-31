@@ -38,3 +38,20 @@ pip install pytest
 ```
 
 #### Make sure to include a driver for selenium such as chromedriver in the local repository
+
+## Testing
+Currently has unit, installation, and end to end tests for dataScraper.py
+Additional end to end test for the vector database and metadata
+
+```bash
+python tests/test_units_dataScraper.py
+python tests/test_integration_dataScraper.py
+python tests/test_e2e_dataScraper.py
+python tests/test_e2e_rulesdata.py
+```
+
+if pytest installed:
+
+```bash
+pytest tests/
+```
