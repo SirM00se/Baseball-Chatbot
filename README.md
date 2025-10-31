@@ -15,7 +15,7 @@ This project will use RAG to answer questions about baseball
 ### What each file does
 - dataScraper.py returns chunks from the mlb rulebook
 
-- vectordatabase.py creates a vectordatabase from the chunks returned from dataScraper.py
+- vectordatabase.py creates a vector database from the chunks returned from dataScraper.py
 
 - SQLConversion.py turns the metadata csv into an SQL database for ease of querying
 
