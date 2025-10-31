@@ -27,13 +27,37 @@ This project will use RAG to answer questions about baseball
 
 ```bash
 pip install requests
+```
+
+```bash
 pip install pandas
+```
+
+```bash
 pip install selenium
+```
+
+```bash
 pip install beautifulsoup
+```
+
+```bash
 pip install webdriver_manager
+```
+
+```bash
 pip install sentence-transformers
+```
+
+```bash
 pip install faiss-cpu
+```
+
+```bash
 pip install numpy
+```
+
+```bash
 pip install pytest
 ```
 
