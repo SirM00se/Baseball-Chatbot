@@ -38,7 +38,7 @@ pip install selenium
 ```
 
 ```bash
-pip install beautifulsoup
+pip install beautifulsoup4
 ```
 
 ```bash
