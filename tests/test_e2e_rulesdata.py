@@ -27,6 +27,7 @@ def test_existing_database():
     first_vec = np.array(eval(metadata_df["embedding"].iloc[0]), dtype=np.float32).reshape(1, -1)
     distances, indices = index.search(first_vec, k=1)
     assert indices[0][0] == metadata_df["id"].iloc[0], "Query did not return the expected ID."
+
     #tests a query of a random vector
     num_vectors = index.ntotal
     rand_idx = random.randint(0, num_vectors - 1)
