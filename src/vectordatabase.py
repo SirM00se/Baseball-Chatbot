@@ -50,10 +50,7 @@ def build_faiss_index(embeddings: np.ndarray, index_path: str) -> np.ndarray:
         index = faiss.IndexIDMap(index)
 
         # Add embeddings
-        try:
-            index.add_with_ids(embeddings, ids)
-        except Exception as e:
-            raise RuntimeError(f"Failed to add embeddings to FAISS index: {e}")
+        index.add_with_ids(embeddings, ids)
 
         # Ensure output directory exists
         os.makedirs(os.path.dirname(index_path), exist_ok=True)
@@ -62,7 +59,7 @@ def build_faiss_index(embeddings: np.ndarray, index_path: str) -> np.ndarray:
         try:
             faiss.write_index(index, index_path)
         except Exception as e:
-            raise IOError(f"Failed to write FAISS index to '{index_path}': {e}")
+            print(f"Failed to write FAISS index to '{index_path}': {e}")
 
         print(f"Saved FAISS index to: {index_path}")
         print(f"Total vectors in index: {index.ntotal}")
@@ -76,16 +73,8 @@ def build_faiss_index(embeddings: np.ndarray, index_path: str) -> np.ndarray:
 # -----------------------------
 def save_metadata(df: pd.DataFrame, ids: np.ndarray, embeddings: np.ndarray, output_path: str):
     """Attach IDs and embeddings to the DataFrame and save as CSV."""
-    try:
-        # Validate inputs
-        if not isinstance(df, pd.DataFrame):
-            raise TypeError("df must be a pandas DataFrame.")
-        if not isinstance(ids, (np.ndarray, list)):
-            raise TypeError("ids must be a NumPy array or list.")
-        if not isinstance(embeddings, np.ndarray):
-            raise TypeError("embeddings must be a NumPy array.")
-        if len(df) != len(ids) or len(df) != len(embeddings):
-            raise ValueError("Length of df, ids, and embeddings must match.")
+    # Validate inputs
+    if isinstance(df, pd.DataFrame) and isinstance(ids, (np.ndarray, list)) and isinstance(embeddings, np.ndarray) and len(df) != len(ids) or len(df) != len(embeddings):
 
         # Attach IDs and embeddings
         df["id"] = ids
@@ -98,16 +87,10 @@ def save_metadata(df: pd.DataFrame, ids: np.ndarray, embeddings: np.ndarray, out
         try:
             df.to_csv(output_path, index=False)
         except Exception as e:
-            raise IOError(f"Failed to save CSV to '{output_path}': {e}")
+            print(f"Failed to save CSV to '{output_path}': {e}")
 
         print(f"Saved metadata to: {output_path}")
 
-    except (TypeError, ValueError, IOError) as e:
-        print(f"Error saving metadata: {e}")
-        raise
-    except Exception as e:
-        print(f"Unexpected error while saving metadata: {e}")
-        raise
 
 
 # -----------------------------
