@@ -36,18 +36,15 @@ def create_driver(headless=True):
 # -----------------------------
 def get_rule_links(driver, base_url):
     urls = []
+    driver.get(base_url)
+    WebDriverWait(driver, 10)
     try:
-        driver.get(base_url)
-        WebDriverWait(driver, 10)
-        try:
-            links = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
-            if links is not None:
-                urls = [link.get_attribute("href") for link in links if link.get_attribute("href")]
-            print(f"Found {len(urls)} links on this page")
-        except NoSuchElementException:
-            print("Inner error: Element not found, skipping this part")
-    except Exception as e:
-        print(f"Failed to get links from {base_url}: {e}")
+        links = driver.find_elements(By.XPATH, "//a[contains(@class, 'p-related-links__link')]")
+        if links is not None:
+            urls = [link.get_attribute("href") for link in links if link.get_attribute("href")]
+        print(f"Found {len(urls)} links on this page")
+    except NoSuchElementException:
+        print("Inner error: Element not found, skipping this part")
     return urls
 
 
@@ -89,8 +86,6 @@ def fetch_info(url):
         print(f"Finished scraping: {url}")
     except requests.RequestException as e:
         print(f"Request error for {url}: {e}")
-    except Exception as e:
-        print(f"Unexpected error for {url}: {e}")
     return data
 
 
@@ -100,26 +95,26 @@ def fetch_info(url):
 def main():
     base_url = "https://www.mlb.com/glossary/rules"
     driver = create_driver(headless=True)
+    try:
+        # Collect all rule page URLs
+        urls = get_rule_links(driver, base_url)
+        driver.quit()
 
-    # Collect all rule page URLs
-    urls = get_rule_links(driver, base_url)
-    driver.quit()
-
-    # Collect data from each page
-    all_data = []
-    for url in urls:
-        try:
+        # Collect data from each page
+        all_data = []
+        for url in urls:
             all_data.extend(fetch_info(url))
-        except Exception as e:
-            print(f"Failed to scrape {url}: {e}")
 
-    # Build DataFrame
-    df = pd.DataFrame(all_data, columns=["url", "text", "tag"])
+        # Build DataFrame
+        df = pd.DataFrame(all_data, columns=["url", "text", "tag"])
 
-    # Save to CSV
-    output_path = "../data/baseballrules.csv"
-    df.to_csv(output_path, index=False)
-    print(f"\nData saved to: {output_path}")
+        # Save to CSV
+        output_path = "../data/baseballrules.csv"
+        df.to_csv(output_path, index=False)
+    except Exception as e:
+        print(f"Failed to scrape {base_url}: {e}")
+    else:
+        print(f"\nData saved to: {output_path}")
 
 
 # -----------------------------
