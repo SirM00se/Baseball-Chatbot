@@ -4,7 +4,11 @@ from sentence_transformers import SentenceTransformer
 import sqlite3
 
 def askQuestion() -> str:
-    question = input("send a message ")
+    try:
+        question = input("send a message ")
+    except KeyboardInterrupt:
+        print("Keyboard interrupt, try again")
+        return askQuestion()
     return question
 
 def createEmbeddingQuestion(question, model_name: str = 'all-MiniLM-L6-v2') -> np.ndarray:
@@ -17,7 +21,7 @@ def generateIDs(embedding):
     ids = [[],[]]
     index = faiss.read_index("../databases/vector_index.faiss")
     k = 5
-    scores, retrieved_ids = index.search(embedding, 5)
+    scores, retrieved_ids = index.search(embedding, k)
     for score in scores:
         ids[1].extend(score.tolist())
     for id in retrieved_ids:
