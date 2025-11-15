@@ -3,6 +3,7 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 import sqlite3
 import ollama
+import sys
 
 def askQuestion() -> str:
     """
@@ -43,7 +44,12 @@ def generateIDs(embedding):
     :return:
         An array of sorted ids and scores
     """
-    index = faiss.read_index("../databases/vector_index.faiss")
+    try:
+        index = faiss.read_index("../databases/vector_index.faiss")
+    except Exception as e:
+        print(f"FAISS index loading error: {e}")
+        sys.exit(1)
+
     k = 5 #checks for the top 5 results
 
     # Ensure embedding is [1, dim]
@@ -51,6 +57,11 @@ def generateIDs(embedding):
         embedding = embedding.reshape(1, -1)
 
     scores, ids = index.search(embedding, k)
+
+    #checks if ids is empty
+    if ids.size == 0:
+        print("No vectors found for query.")
+        return None
 
     scores = scores[0].tolist()
     ids = ids[0].tolist()
@@ -74,7 +85,12 @@ def querySQLite(ids, scores):
         The metadata chunks
     """
     #intialize access to the database
-    conn = sqlite3.connect("../databases/baseball_vectors.db")
+    try:
+        conn = sqlite3.connect("../databases/baseball_vectors.db")
+    except sqlite3.Error as e:
+        print(f"SQLite connection error: {e}")
+        sys.exit(1)
+
     cursor = conn.cursor()
 
     #Allows the ability to safely pass ids
@@ -88,6 +104,11 @@ def querySQLite(ids, scores):
 
     # Build a mapping from id → row
     row_map = {row[3]: row for row in rows}
+
+    #checks if row is missing
+    for row in rows:
+        if row is None:
+            print(f"Metadata for id {row} missing")
 
     # Rebuild chunks in the *same order* as the sorted ids
     retrieved_chunks = []
@@ -147,7 +168,7 @@ INSTRUCTIONS:
 
     return prompt
 
-def callOllama(prompt):
+def callOllama(prompt, model):
     """
     Generates a response to the question with Ollama
 
@@ -156,19 +177,27 @@ def callOllama(prompt):
         An answer to the user question
     """
     response = ollama.chat(
-        model="llama3.1:8b",
+        model= model,
         messages=[{"role": "user", "content": prompt}],
     )
     return response["message"]["content"]
 
 def main():
     question = askQuestion()
+    if not isinstance(question, str) or not question.strip():
+        raise ValueError("Query must be a non-empty string")
     embedding = createEmbeddingQuestion(question)
     ids, scores = generateIDs(embedding)
     chunks = querySQLite(ids, scores)
     prompt = make_ollama_json_prompt(question, chunks)
-    answer = callOllama(prompt)
-    print(answer)
+    model = "llama3.1:8b"
+    try:
+        answer = callOllama(prompt, model)
+        print(answer)
+    except ollama.ResponseError as e:
+        print('Error:', e.error)
+        if e.status_code == 404:
+            ollama.pull(model)
 
 if __name__ == "__main__":
     main()
