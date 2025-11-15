@@ -104,7 +104,6 @@ def querySQLite(ids, scores):
 
     # Build a mapping from id → row
     row_map = {row[3]: row for row in rows}
-
     #checks if row is missing
     for row in rows:
         if row is None:
