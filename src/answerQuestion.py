@@ -5,6 +5,13 @@ import sqlite3
 import ollama
 
 def askQuestion() -> str:
+    """
+    Allows user to input a question
+    keeps asking the user if there is a keyboard interrupt
+
+    :return:
+        The question as a string
+    """
     try:
         question = input("send a message ")
         return question
@@ -14,13 +21,30 @@ def askQuestion() -> str:
 
 
 def createEmbeddingQuestion(question, model_name: str = 'all-MiniLM-L6-v2') -> np.ndarray:
+    """
+    creates an embedding for the user question
+
+    :param question: user question
+    :param model_name: Sentence Transformers model
+    :return:
+        The embedding of the user question
+    """
     model = SentenceTransformer(model_name)
+
+    #generates the embedding for the question
     embedding = model.encode(question, convert_to_numpy=True, normalize_embeddings=True).astype('float32').reshape(1, -1)
     return embedding
 
 def generateIDs(embedding):
+    """
+    generates the closest ids in the vector database to the user question
+
+    :param embedding: embedding of the user question
+    :return:
+        An array of sorted ids and scores
+    """
     index = faiss.read_index("../databases/vector_index.faiss")
-    k = 5
+    k = 5 #checks for the top 5 results
 
     # Ensure embedding is [1, dim]
     if len(embedding.shape) == 1:
@@ -42,14 +66,21 @@ def generateIDs(embedding):
 
 def querySQLite(ids, scores):
     """
-    ids    : list of sorted FAISS ids
-    scores : list of sorted FAISS scores (same order)
+    Searches the metadata for chunks that include metadata and the score
+
+    :param ids: faiss chunk ids
+    :param scores: faiss scores
+    :return:
+        The metadata chunks
     """
+    #intialize access to the database
     conn = sqlite3.connect("../databases/baseball_vectors.db")
     cursor = conn.cursor()
 
+    #Allows the ability to safely pass ids
     placeholders = ",".join(["?"] * len(ids))
 
+    #Queries the sql database
     query = f"SELECT url, text, tag, id FROM rules WHERE id IN ({placeholders})"
     cursor.execute(query, ids)
     rows = cursor.fetchall()
@@ -76,6 +107,11 @@ def querySQLite(ids, scores):
 def make_ollama_json_prompt(question, chunks):
     """
     Creates a JSON-style RAG prompt for Ollama.
+
+    :param question: user question
+    :param chunks: metadata chunks
+    :return:
+        A JSON RAG prompt that can be used by Ollama
     """
     # Convert chunks to JSON-like structure
     chunk_list = [
@@ -112,8 +148,15 @@ INSTRUCTIONS:
     return prompt
 
 def callOllama(prompt):
+    """
+    Generates a response to the question with Ollama
+
+    :param prompt: JSON RAG prompt
+    :return:
+        An answer to the user question
+    """
     response = ollama.chat(
-        model="llama3.1:8b",  # or your local Ollama model
+        model="llama3.1:8b",
         messages=[{"role": "user", "content": prompt}],
     )
     return response["message"]["content"]
