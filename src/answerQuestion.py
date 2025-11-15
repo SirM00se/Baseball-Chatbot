@@ -7,10 +7,11 @@ import ollama
 def askQuestion() -> str:
     try:
         question = input("send a message ")
+        return question
     except KeyboardInterrupt:
         print("Keyboard interrupt, try again")
         return askQuestion()
-    return question
+
 
 def createEmbeddingQuestion(question, model_name: str = 'all-MiniLM-L6-v2') -> np.ndarray:
     model = SentenceTransformer(model_name)
