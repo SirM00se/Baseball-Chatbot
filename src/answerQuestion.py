@@ -183,21 +183,68 @@ def callOllama(prompt, model):
     return response["message"]["content"]
 
 def main():
-    question = askQuestion()
-    if not isinstance(question, str) or not question.strip():
-        raise ValueError("Query must be a non-empty string")
-    embedding = createEmbeddingQuestion(question)
-    ids, scores = generateIDs(embedding)
-    chunks = querySQLite(ids, scores)
-    prompt = make_ollama_json_prompt(question, chunks)
-    model = "llama3.1:8b"
     try:
-        answer = callOllama(prompt, model)
-        print(answer)
-    except ollama.ResponseError as e:
-        print('Error:', e.error)
-        if e.status_code == 404:
-            ollama.pull(model)
+        # 1. Ask for a question
+        question = askQuestion()
+
+        # Validate question
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("Query must be a non-empty string")
+
+        # 2. Generate embedding
+        embedding = createEmbeddingQuestion(question)
+
+        # Validate embedding
+        if not isinstance(embedding, (list, np.ndarray)):
+            raise TypeError(f"Embedding must be a list or ndarray, got {type(embedding)}")
+        embedding = np.array(embedding)
+        if not np.all(np.isfinite(embedding)):
+            raise ValueError("Embedding contains NaN or infinite values")
+        if np.linalg.norm(embedding) == 0:
+            raise ValueError("Embedding is a zero vector")
+
+        # 3. Generate IDs from FAISS
+        ids, scores = generateIDs(embedding)
+        if not ids:
+            print("No IDs retrieved from FAISS; skipping query")
+            return
+
+        # 4. Query SQLite for metadata
+        chunks = querySQLite(ids, scores)
+        if not chunks:
+            print("No chunks retrieved from SQLite; skipping prompt")
+            return
+
+        # 5. Create prompt
+        prompt = make_ollama_json_prompt(question, chunks)
+        if not prompt:
+            print("Generated prompt is empty; cannot call Ollama")
+            return
+
+        # 6. Call Ollama
+        model = "llama3.1:8b"
+        try:
+            answer = callOllama(prompt, model)
+            if not answer:
+                print("Ollama returned empty response")
+            else:
+                print("Answer:", answer)
+        except ollama.ResponseError as e:
+            print("Ollama ResponseError:", e.error)
+            if getattr(e, 'status_code', None) == 404:
+                print(f"Model {model} not found locally. Attempting to pull...")
+                try:
+                    ollama.pull(model)
+                    print(f"Model {model} pulled successfully. Retry manually.")
+                except Exception as pull_err:
+                    print(f"Failed to pull model: {pull_err}")
+
+    except ValueError as ve:
+        print(f"ValueError: {ve}")
+    except TypeError as te:
+        print(f"TypeError: {te}")
+    except Exception as ex:
+        print(f"Unexpected error: {ex}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
