@@ -5,6 +5,11 @@ import sqlite3
 import ollama
 import sys
 
+#lists that store context
+text_list = []
+url_list = []
+question_list = []
+
 def askQuestion() -> str:
     """
     Allows user to input a question
@@ -32,9 +37,11 @@ def createEmbeddingQuestion(question, model_name: str = 'all-MiniLM-L6-v2') -> n
     """
     model = SentenceTransformer(model_name)
 
-    #generates the embedding for the question
-    embedding = model.encode(question, convert_to_numpy=True, normalize_embeddings=True).astype('float32').reshape(1, -1)
+    # generates the embedding for the question
+    embedding = model.encode(question, convert_to_numpy=True, normalize_embeddings=True).astype('float32').reshape(1,
+                                                                                                                   -1)
     return embedding
+
 
 def generateIDs(embedding):
     """
@@ -50,7 +57,7 @@ def generateIDs(embedding):
         print(f"FAISS index loading error: {e}")
         sys.exit(1)
 
-    k = 5 #checks for the top 5 results
+    k = 5  # checks for the top 5 results
 
     # Ensure embedding is [1, dim]
     if len(embedding.shape) == 1:
@@ -58,7 +65,7 @@ def generateIDs(embedding):
 
     scores, ids = index.search(embedding, k)
 
-    #checks if ids is empty
+    # checks if ids is empty
     if ids.size == 0:
         print("No vectors found for query.")
         return None
@@ -75,6 +82,7 @@ def generateIDs(embedding):
 
     return sorted_ids, sorted_scores
 
+
 def querySQLite(ids, scores):
     """
     Searches the metadata for chunks that include metadata and the score
@@ -84,7 +92,7 @@ def querySQLite(ids, scores):
     :return:
         The metadata chunks
     """
-    #intialize access to the database
+    # intialize access to the database
     try:
         conn = sqlite3.connect("../databases/baseball_vectors.db")
     except sqlite3.Error as e:
@@ -93,10 +101,10 @@ def querySQLite(ids, scores):
 
     cursor = conn.cursor()
 
-    #Allows the ability to safely pass ids
+    # Allows the ability to safely pass ids
     placeholders = ",".join(["?"] * len(ids))
 
-    #Queries the sql database
+    # Queries the sql database
     query = f"SELECT url, text, tag, id FROM rules WHERE id IN ({placeholders})"
     cursor.execute(query, ids)
     rows = cursor.fetchall()
@@ -104,7 +112,7 @@ def querySQLite(ids, scores):
 
     # Build a mapping from id → row
     row_map = {row[3]: row for row in rows}
-    #checks if row is missing
+    # checks if row is missing
     for row in rows:
         if row is None:
             print(f"Metadata for id {row} missing")
@@ -124,6 +132,7 @@ def querySQLite(ids, scores):
 
     return retrieved_chunks
 
+
 def make_ollama_json_prompt(question, chunks):
     """
     Creates a JSON-style RAG prompt for Ollama.
@@ -133,17 +142,12 @@ def make_ollama_json_prompt(question, chunks):
     :return:
         A JSON RAG prompt that can be used by Ollama
     """
-    # Convert chunks to JSON-like structure
-    chunk_list = [
-        {
-            "id": c["id"],
-            "score": c["score"],
-            "url": c["url"],
-            "tag": c["tag"],
-            "text": c["text"]
-        }
-        for c in chunks
-    ]
+    # Convert chunk information to JSON-like structure
+    for c in chunks:
+        text_list.append(c["text"])
+        url_list.append(c["url"])
+    # adds question to question list
+    question_list.append(question)
 
     # Now create a JSON-based instruction
     prompt = f"""
@@ -152,10 +156,13 @@ You are a retrieval-augmented assistant.
 Here is the context, provided as a JSON array of document chunks:
 
 CHUNKS:
-{chunk_list}
+{text_list}
 
-QUESTION:
-{question}
+URLS:
+{url_list}
+
+QUESTIONS:
+{question_list}
 
 INSTRUCTIONS:
 - Answer using ONLY the information from the chunks.
@@ -167,6 +174,19 @@ INSTRUCTIONS:
 
     return prompt
 
+def truncateContext(question_list,url_list,text_list ):
+    """
+    Removes old questions to manage memory
+    :param question_list:
+    :param url_list:
+    :param text_list:
+    :return:
+    """
+    del text_list[0]
+    del url_list[0]
+    del question_list[0]
+    return question_list, url_list, text_list
+
 def callOllama(prompt, model):
     """
     Generates a response to the question with Ollama
@@ -176,74 +196,87 @@ def callOllama(prompt, model):
         An answer to the user question
     """
     response = ollama.chat(
-        model= model,
+        model=model,
         messages=[{"role": "user", "content": prompt}],
     )
     return response["message"]["content"]
 
+
 def main():
-    try:
-        # 1. Ask for a question
-        question = askQuestion()
-
-        # Validate question
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("Query must be a non-empty string")
-
-        # 2. Generate embedding
-        embedding = createEmbeddingQuestion(question)
-
-        # Validate embedding
-        if not isinstance(embedding, (list, np.ndarray)):
-            raise TypeError(f"Embedding must be a list or ndarray, got {type(embedding)}")
-        embedding = np.array(embedding)
-        if not np.all(np.isfinite(embedding)):
-            raise ValueError("Embedding contains NaN or infinite values")
-        if np.linalg.norm(embedding) == 0:
-            raise ValueError("Embedding is a zero vector")
-
-        # 3. Generate IDs from FAISS
-        ids, scores = generateIDs(embedding)
-        if not ids:
-            print("No IDs retrieved from FAISS; skipping query")
-            return
-
-        # 4. Query SQLite for metadata
-        chunks = querySQLite(ids, scores)
-        if not chunks:
-            print("No chunks retrieved from SQLite; skipping prompt")
-            return
-
-        # 5. Create prompt
-        prompt = make_ollama_json_prompt(question, chunks)
-        if not prompt:
-            print("Generated prompt is empty; cannot call Ollama")
-            return
-
-        # 6. Call Ollama
-        model = "llama3.1:8b"
+    answer = True
+    while answer:
         try:
-            answer = callOllama(prompt, model)
-            if not answer:
-                print("Ollama returned empty response")
-            else:
-                print("Answer:", answer)
-        except ollama.ResponseError as e:
-            print("Ollama ResponseError:", e.error)
-            if getattr(e, 'status_code', None) == 404:
-                print(f"Model {model} not found locally. Attempting to pull...")
-                try:
-                    ollama.pull(model)
-                    print(f"Model {model} pulled successfully. Retry manually.")
-                except Exception as pull_err:
-                    print(f"Failed to pull model: {pull_err}")
+            #truncates old context
+            try:
+                if question_list and len(question_list) > 10:
+                    question_list, url_list, text_list = truncateContext(question_list, url_list, text_list)
+            except UnboundLocalError:
+                pass
+            # 1. Ask for a question
+            question = askQuestion()
+            if question == "No":
+                answer = False
+                break
+            # Validate question
+            if not isinstance(question, str) or not question.strip():
+                raise ValueError("Query must be a non-empty string")
 
-    except ValueError as ve:
-        print(f"ValueError: {ve}")
-    except TypeError as te:
-        print(f"TypeError: {te}")
-    except Exception as ex:
-        print(f"Unexpected error: {ex}", file=sys.stderr)
+            # 2. Generate embedding
+            embedding = createEmbeddingQuestion(question)
+
+            # Validate embedding
+            if not isinstance(embedding, (list, np.ndarray)):
+                raise TypeError(f"Embedding must be a list or ndarray, got {type(embedding)}")
+            embedding = np.array(embedding)
+            if not np.all(np.isfinite(embedding)):
+                raise ValueError("Embedding contains NaN or infinite values")
+            if np.linalg.norm(embedding) == 0:
+                raise ValueError("Embedding is a zero vector")
+
+            # 3. Generate IDs from FAISS
+            ids, scores = generateIDs(embedding)
+            if not ids:
+                print("No IDs retrieved from FAISS; skipping query")
+                return
+
+            # 4. Query SQLite for metadata
+            chunks = querySQLite(ids, scores)
+            if not chunks:
+                print("No chunks retrieved from SQLite; skipping prompt")
+                return
+
+            # 5. Create prompt
+            prompt = make_ollama_json_prompt(question, chunks)
+            if not prompt:
+                print("Generated prompt is empty; cannot call Ollama")
+                return
+
+            # 6. Call Ollama
+            model = "llama3.1:8b"
+            try:
+                answer = callOllama(prompt, model)
+                if not answer:
+                    print("Ollama returned empty response")
+                else:
+                    print("Answer:", answer)
+                    print("Do you have anymore questions? (Yes/No)")
+            except ollama.ResponseError as e:
+                print("Ollama ResponseError:", e.error)
+                if getattr(e, 'status_code', None) == 404:
+                    print(f"Model {model} not found locally. Attempting to pull...")
+                    try:
+                        ollama.pull(model)
+                        print(f"Model {model} pulled successfully. Retry manually.")
+                    except Exception as pull_err:
+                        print(f"Failed to pull model: {pull_err}")
+
+        except ValueError as ve:
+            print(f"ValueError: {ve}")
+        except TypeError as te:
+            print(f"TypeError: {te}")
+        except Exception as ex:
+            print(f"Unexpected error: {ex}", file=sys.stderr)
+
 
 if __name__ == "__main__":
     main()
