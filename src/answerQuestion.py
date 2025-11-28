@@ -6,8 +6,6 @@ import ollama
 import sys
 
 #lists that store context
-text_list = []
-url_list = []
 question_list = []
 
 def askQuestion() -> str:
@@ -142,6 +140,8 @@ def make_ollama_json_prompt(question, chunks):
     :return:
         A JSON RAG prompt that can be used by Ollama
     """
+    text_list = []
+    url_list = []
     # Convert chunk information to JSON-like structure
     for c in chunks:
         text_list.append(c["text"])
@@ -161,31 +161,33 @@ CHUNKS:
 URLS:
 {url_list}
 
-QUESTIONS:
+CURRENT_QUESTION:
+{question_list[-1]}
+
+ALL_QUESTIONS:
 {question_list}
 
 INSTRUCTIONS:
 - Answer using ONLY the information from the chunks.
+- Only answer the CURRENT_QUESTION
+- Use ALL_QUESTIONS to inform answer to the CURRENT_QUESTION
 - For every piece of information you include, include the corresponding URL from the chunk.
 - If the answer is not in the chunks, say "I don't know."
 - Do NOT invent missing information.
 - Format your answer as plain text, but include URLs inline or in parentheses for citations.
+- Inform the user that they can exit by typing "No"
     """
 
     return prompt
 
-def truncateContext(question_list,url_list,text_list ):
+def truncateContext(question_list):
     """
     Removes old questions to manage memory
     :param question_list:
-    :param url_list:
-    :param text_list:
     :return:
     """
-    del text_list[0]
-    del url_list[0]
     del question_list[0]
-    return question_list, url_list, text_list
+    return question_list
 
 def callOllama(prompt, model):
     """
@@ -209,7 +211,7 @@ def main():
             #truncates old context
             try:
                 if question_list and len(question_list) > 10:
-                    question_list, url_list, text_list = truncateContext(question_list, url_list, text_list)
+                    question_list = truncateContext(question_list)
             except UnboundLocalError:
                 pass
             # 1. Ask for a question
@@ -259,7 +261,6 @@ def main():
                     print("Ollama returned empty response")
                 else:
                     print("Answer:", answer)
-                    print("Do you have anymore questions? (Yes/No)")
             except ollama.ResponseError as e:
                 print("Ollama ResponseError:", e.error)
                 if getattr(e, 'status_code', None) == 404:
