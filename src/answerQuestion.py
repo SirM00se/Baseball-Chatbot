@@ -6,6 +6,7 @@ import ollama
 import sys
 import json
 import textwrap
+from difflib import SequenceMatcher
 
 #lists that store context
 question_list = []
@@ -180,39 +181,60 @@ def make_ollama_json_prompt(question, chunks):
 
 def rewrite_question(question, model):
     """
-    Rewrite the question to be self-contained using a conversation summary.
+    Rewrite the question to be self-contained using conversation summary,
+    while preventing drift.
+    :param question: original question
+    :param model: Ollama model
+    :return: the rewritten question
     """
     global conversation_summary
 
-    # Prepare messages in Ollama format
-    messages = [
-        {
-            "role": "system",
-            "content": (
-                "You are a helpful assistant that rewrites follow-up questions "
-                "to be fully self-contained, using context provided."
-            )
-        },
-        {
-            "role": "user",
-            "content": (
-                f"Conversation summary:\n{conversation_summary}\n\n"
-                f"Current question: \"{question}\"\n\n"
-                "Rewrite the current question so it is self-contained."
-            )
-        }
-    ]
+    system_prompt = """
+You rewrite follow-up questions so they are self-contained.
+Rules:
+- Replace ambiguous references (e.g., “it”) with the specific entity.
+- DO NOT add new facts.
+- DO NOT expand or change the meaning.
+- DO NOT include details not explicitly in the question.
+- Keep the rewritten question concise and similar to the original.
+Return ONLY the rewritten question.
+"""
 
-    # Call Ollama
-    response = ollama.chat(model=model, messages=messages, stream=False)
+    user_prompt = f"""
+Conversation summary (for reference only; do not add facts from it):
+{conversation_summary}
 
-    # Extract the rewritten question
+Original question:
+"{question}"
+
+Rewrite following the rules:
+"""
+
+    response = ollama.chat(
+        model=model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        stream=False
+    )
+
     rewritten_question = response.message.content.strip()
+
+    # If rewrite drifted too far, fallback to original
+    if too_different(question, rewritten_question):
+        return question
 
     return rewritten_question
 
 
 def update_summary(model, max_turns=5):
+    """
+    Updates the summary of they conversation
+    :param model: Ollama model
+    :param max_turns: number of turns in the conversation
+    :return: the summary
+    """
     global qa_history, conversation_summary
 
     # Take the last few turns for summarization
@@ -238,11 +260,22 @@ Do not include irrelevant details.
 
     conversation_summary = response.message.content.strip()
 
+def too_different(original, rewritten, threshold=0.35):
+    """
+    Checks if new question is too different
+    :param original: original question
+    :param rewritten: rewritten question
+    :param threshold: threshold that determines if question is too different
+    :return: whether the question is too different
+    """
+    ratio = SequenceMatcher(None, original, rewritten).ratio()
+    return ratio < threshold
+
 def truncateContext(question_list):
     """
     Removes old questions to manage memory
-    :param question_list:
-    :return:
+    :param question_list: list of questions
+    :return: the updated list
     """
     del question_list[0]
     return question_list
