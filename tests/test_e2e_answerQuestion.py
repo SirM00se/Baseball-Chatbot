@@ -119,8 +119,9 @@ def test_e2e_pipeline(fake_embedding, fake_faiss_index, fake_sqlite_db):
                     assert chunks[0]["text"].startswith("Sample text")
 
                     # Prompt contains JSON-style chunks
-                    assert "CHUNKS:" in prompt
-                    assert "QUESTION" in prompt
+                    assert "chunks" in prompt
+                    assert "current_question" in prompt
+                    assert "all_questions" in prompt
 
                     # Final Ollama answer
                     assert answer == "Final answer from Ollama"
