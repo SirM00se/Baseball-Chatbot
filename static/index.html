@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAG Chatbot</title>
+
+    <!-- Load your JavaScript file -->
+    <script defer src="/static/chat.js"></script>
+
+    <!-- Basic styling of chat bubbles -->
+    <style>
+        body { font-family: Arial; margin: 40px; max-width: 800px; }
+        #chatbox { margin-bottom: 20px; }
+        .bubble {
+            max-width: 70%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 10px;
+            white-space: pre-wrap;
+        }
+        .user { background: #cce5ff; margin-left: auto; }
+        .bot  { background: #e2e2e2; margin-right: auto; }
+    </style>
+</head>
+<body>
+
+<h2>RAG Chatbot</h2>
+
+<!-- where messages appear -->
+<div id="chatbox"></div>
+
+<!-- text box + send button -->
+<input id="message" placeholder="Type your message..." style="width:70%">
+<button onclick="sendMessage()">Send</button>
+
+</body>
+</html>
