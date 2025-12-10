@@ -61,6 +61,14 @@ pip install numpy
 pip install pytest
 ```
 
+```bash
+pip install ollama
+```
+
+```bash
+pip install fastapi
+```
+
 #### Make sure to include a driver for selenium such as chromedriver in the local repository
 
 ## Testing
