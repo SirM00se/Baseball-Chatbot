@@ -156,7 +156,6 @@ def make_ollama_json_prompt(question, chunks):
             "If the answer is not in the chunks, say: \"I don't know.\"",
             "Do not hallucinate missing information.",
             "Respond in plain text with inline URLs.",
-            "Tell the user they can exit by typing 'No'."
         ]
     }
 
