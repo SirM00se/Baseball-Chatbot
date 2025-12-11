@@ -1,7 +1,7 @@
+const input = document.getElementById("message");
+const chatbox = document.getElementById("chatbox");
+const button = document.getElementById("button");
 async function sendMessage() {
-    const input = document.getElementById("message");
-    const chatbox = document.getElementById("chatbox");
-
     const userMsg = input.value;
     if (!userMsg) return;
 
@@ -23,3 +23,9 @@ async function sendMessage() {
     chatbox.innerHTML += `<div class="bubble bot">${botMsg}</div>`;
     chatbox.scrollTop = chatbox.scrollHeight;   // auto scroll to bottom
 }
+button.addEventListener("click", sendMessage);
+message.addEventListener("keyup", (event) => {
+    if (event.key === "Enter") {
+        sendMessage();
+    }
+});
