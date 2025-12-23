@@ -74,22 +74,29 @@ def build_faiss_index(embeddings: np.ndarray, index_path: str) -> np.ndarray:
 def save_metadata(df: pd.DataFrame, ids: np.ndarray, embeddings: np.ndarray, output_path: str):
     """Attach IDs and embeddings to the DataFrame and save as CSV."""
     # Validate inputs
-    if isinstance(df, pd.DataFrame) and isinstance(ids, (np.ndarray, list)) and isinstance(embeddings, np.ndarray) and len(df) != len(ids) or len(df) != len(embeddings):
+    if not (
+            isinstance(df, pd.DataFrame)
+            and isinstance(ids, (np.ndarray, list))
+            and isinstance(embeddings, np.ndarray)
+            and len(df) == len(ids)
+            and len(df) == len(embeddings)
+    ):
+        raise ValueError("DataFrame, IDs, and embeddings must have matching lengths")
 
-        # Attach IDs and embeddings
-        df["id"] = ids
-        df["embedding"] = embeddings.tolist()
+    # Attach IDs and embeddings
+    df["id"] = ids
+    df["embedding"] = embeddings.tolist()
 
-        # Ensure output directory exists
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-        # Save to CSV
-        try:
-            df.to_csv(output_path, index=False)
-        except Exception as e:
-            print(f"Failed to save CSV to '{output_path}': {e}")
+    # Save to CSV
+    try:
+        df.to_csv(output_path, index=False)
+    except Exception as e:
+        print(f"Failed to save CSV to '{output_path}': {e}")
 
-        print(f"Saved metadata to: {output_path}")
+    print(f"Saved metadata to: {output_path}")
 
 
 
