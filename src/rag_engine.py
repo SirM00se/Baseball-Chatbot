@@ -2,7 +2,6 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import sqlite3
-import ollama
 import sys
 import json
 import textwrap
@@ -13,24 +12,33 @@ from groq import Groq
 #Creates client
 client = Groq()
 
+#load models
+try:
+    #index = faiss.read_index("../databases/vector_index.faiss")
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    FAISS_PATH = os.path.join(BASE_DIR, "..", "databases", "vector_index.faiss")
+
+    index = faiss.read_index(FAISS_PATH)
+except Exception as e:
+    print(f"FAISS index loading error: {e}")
+    sys.exit(1)
+stmodel = SentenceTransformer('all-MiniLM-L6-v2')
 #lists that store context
 question_list = []
 qa_history = []
 conversation_summary = ""
 
-def createEmbeddingQuestion(question, model_name: str = 'all-MiniLM-L6-v2') -> np.ndarray:
+def createEmbeddingQuestion(question) -> np.ndarray:
     """
     creates an embedding for the user question
 
     :param question: user question
-    :param model_name: Sentence Transformers model
     :return:
         The embedding of the user question
     """
-    model = SentenceTransformer(model_name)
 
     # generates the embedding for the question
-    embedding = model.encode(question, convert_to_numpy=True, normalize_embeddings=True).astype('float32').reshape(1,
+    embedding = stmodel.encode(question, convert_to_numpy=True, normalize_embeddings=True).astype('float32').reshape(1,
                                                                                                                    -1)
     return embedding
 
@@ -43,15 +51,6 @@ def generateIDs(embedding):
     :return:
         An array of sorted ids and scores
     """
-    try:
-        #index = faiss.read_index("../databases/vector_index.faiss")
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        FAISS_PATH = os.path.join(BASE_DIR, "..", "databases", "vector_index.faiss")
-
-        index = faiss.read_index(FAISS_PATH)
-    except Exception as e:
-        print(f"FAISS index loading error: {e}")
-        sys.exit(1)
 
     k = 5  # checks for the top 5 results
 
@@ -275,20 +274,12 @@ def truncateContext(question_list):
     del question_list[0]
     return question_list
 
-def callLLM(prompt, model, backend="groq"):
-    if backend == "ollama":
-        response = ollama.chat(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return response["message"]["content"]
-
-    elif backend == "groq":
-        completion = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return completion.choices[0].message.content
+def callLLM(prompt, model):
+    completion = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return completion.choices[0].message.content
 
 def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
     """
