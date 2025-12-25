@@ -8,6 +8,10 @@ import json
 import textwrap
 import os
 from difflib import SequenceMatcher
+from groq import Groq
+
+#Creates client
+client = Groq()
 
 #lists that store context
 question_list = []
@@ -200,16 +204,16 @@ Original question:
 Rewrite following the rules:
 """
 
-    response = ollama.chat(
+    completion = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
-        ],
-        stream=False
+        ]
+        # stream parameter omitted; Groq streaming is different
     )
 
-    rewritten_question = response.message.content.strip()
+    rewritten_question = completion.choices[0].message.content.strip()
 
     # If rewrite drifted too far, fallback to original
     if too_different(question, rewritten_question):
@@ -239,16 +243,17 @@ Do not include irrelevant details.
 {history_text}
 """
 
-    response = ollama.chat(
+    completion = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
-        ],
-        stream=False
+        ]
+        # stream parameter omitted; streaming handled differently in Groq
     )
 
-    conversation_summary = response.message.content.strip()
+    conversation_summary = completion.choices[0].message.content.strip()
+    return conversation_summary
 
 def too_different(original, rewritten, threshold=0.35):
     """
@@ -270,21 +275,22 @@ def truncateContext(question_list):
     del question_list[0]
     return question_list
 
-def callOllama(prompt, model):
-    """
-    Generates a response to the question with Ollama
+def callLLM(prompt, model, backend="groq"):
+    if backend == "ollama":
+        response = ollama.chat(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response["message"]["content"]
 
-    :param prompt: JSON RAG prompt
-    :return:
-        An answer to the user question
-    """
-    response = ollama.chat(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return response["message"]["content"]
+    elif backend == "groq":
+        completion = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return completion.choices[0].message.content
 
-def answer_question(question: str, model: str = "llama3.1:8b") -> str:
+def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
     """
     Runs one full RAG query using the existing pipeline.
     Returns the answer as a string.
@@ -318,7 +324,7 @@ def answer_question(question: str, model: str = "llama3.1:8b") -> str:
     prompt = make_ollama_json_prompt(question, chunks)
 
     # call Ollama
-    answer = callOllama(prompt, model)
+    answer = callLLM(prompt, model)
 
     # save to history
     qa_history.append({"question": question, "answer": answer})
