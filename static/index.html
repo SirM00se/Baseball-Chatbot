@@ -3,13 +3,39 @@
 <head>
     <title>Baseball Chatbot</title>
 
-    <!-- Load your JavaScript file -->
     <script defer src="/static/chat.js"></script>
 
-    <!-- Basic styling of chat bubbles -->
     <style>
-        body { font-family: Arial; margin: 40px; max-width: 800px; background-color: SlateGrey}
-        #chatbox { margin-bottom: 20px; }
+        body {
+            font-family: Arial;
+            margin: 40px;
+            background-color: SlateGrey;
+        }
+
+        /* Layout container */
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1100px;
+        }
+
+        /* Chat section */
+        .chat-section {
+            flex: 2;
+        }
+
+        /* Description section */
+        .description {
+            flex: 1;
+            color: Seashell;
+            font-family: serif;
+            line-height: 1.5;
+        }
+
+        #chatbox {
+            margin-bottom: 20px;
+        }
+
         .bubble {
             max-width: 70%;
             padding: 10px;
@@ -17,20 +43,37 @@
             border-radius: 10px;
             white-space: pre-wrap;
         }
+
         .user { background: #cce5ff; margin-left: auto; }
         .bot  { background: #e2e2e2; margin-right: auto; }
     </style>
 </head>
+
 <body>
 
-<h2 style = "color: Seashell; font-family: serif">Baseball Chatbot</h2>
+<h2 style="color: Seashell; font-family: serif;">Baseball Chatbot</h2>
 
-<!-- where messages appear -->
-<div id="chatbox"></div>
+<div class="container">
 
-<!-- text box + send button -->
-<input id="message" placeholder="Type your message..." style="width:70%">
-<button id="button">Send</button>
+    <!-- LEFT: Chat -->
+    <div class="chat-section">
+        <div id="chatbox"></div>
+
+        <input id="message" placeholder="Type your message..." style="width:70%">
+        <button id="button">Send</button>
+    </div>
+
+    <!-- RIGHT: Description -->
+    <div class="description">
+        <h3>About This Chatbot</h3>
+        <p>
+            This baseball chatbot answers questions about the rules of baseball.
+            This is project is currently in the beta test, so it is possible that there will be accuracy issues.
+            Please let me know if you have any suggested improvements for this project!
+        </p>
+    </div>
+
+</div>
 
 </body>
 </html>
