@@ -2,31 +2,43 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import sqlite3
-import ollama
 import sys
 import json
 import textwrap
 import os
 from difflib import SequenceMatcher
+from groq import Groq
 
+#Creates client
+client = Groq()
+
+#load models
+try:
+    #index = faiss.read_index("../databases/vector_index.faiss")
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    FAISS_PATH = os.path.join(BASE_DIR, "..", "databases", "vector_index.faiss")
+
+    index = faiss.read_index(FAISS_PATH)
+except Exception as e:
+    print(f"FAISS index loading error: {e}")
+    sys.exit(1)
+stmodel = SentenceTransformer('all-MiniLM-L6-v2')
 #lists that store context
 question_list = []
 qa_history = []
 conversation_summary = ""
 
-def createEmbeddingQuestion(question, model_name: str = 'all-MiniLM-L6-v2') -> np.ndarray:
+def createEmbeddingQuestion(question) -> np.ndarray:
     """
     creates an embedding for the user question
 
     :param question: user question
-    :param model_name: Sentence Transformers model
     :return:
         The embedding of the user question
     """
-    model = SentenceTransformer(model_name)
 
     # generates the embedding for the question
-    embedding = model.encode(question, convert_to_numpy=True, normalize_embeddings=True).astype('float32').reshape(1,
+    embedding = stmodel.encode(question, convert_to_numpy=True, normalize_embeddings=True).astype('float32').reshape(1,
                                                                                                                    -1)
     return embedding
 
@@ -39,15 +51,6 @@ def generateIDs(embedding):
     :return:
         An array of sorted ids and scores
     """
-    try:
-        #index = faiss.read_index("../databases/vector_index.faiss")
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        FAISS_PATH = os.path.join(BASE_DIR, "..", "databases", "vector_index.faiss")
-
-        index = faiss.read_index(FAISS_PATH)
-    except Exception as e:
-        print(f"FAISS index loading error: {e}")
-        sys.exit(1)
 
     k = 5  # checks for the top 5 results
 
@@ -127,7 +130,7 @@ def querySQLite(ids, scores):
     return retrieved_chunks
 
 
-def make_ollama_json_prompt(question, chunks):
+def make_json_prompt(question, chunks):
     """
     Creates a clean JSON-style RAG prompt for Ollama.
 
@@ -200,16 +203,16 @@ Original question:
 Rewrite following the rules:
 """
 
-    response = ollama.chat(
+    completion = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
-        ],
-        stream=False
+        ]
+        # stream parameter omitted; Groq streaming is different
     )
 
-    rewritten_question = response.message.content.strip()
+    rewritten_question = completion.choices[0].message.content.strip()
 
     # If rewrite drifted too far, fallback to original
     if too_different(question, rewritten_question):
@@ -239,16 +242,17 @@ Do not include irrelevant details.
 {history_text}
 """
 
-    response = ollama.chat(
+    completion = client.chat.completions.create(
         model=model,
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
-        ],
-        stream=False
+        ]
+        # stream parameter omitted; streaming handled differently in Groq
     )
 
-    conversation_summary = response.message.content.strip()
+    conversation_summary = completion.choices[0].message.content.strip()
+    return conversation_summary
 
 def too_different(original, rewritten, threshold=0.35):
     """
@@ -270,21 +274,14 @@ def truncateContext(question_list):
     del question_list[0]
     return question_list
 
-def callOllama(prompt, model):
-    """
-    Generates a response to the question with Ollama
-
-    :param prompt: JSON RAG prompt
-    :return:
-        An answer to the user question
-    """
-    response = ollama.chat(
+def callLLM(prompt, model):
+    completion = client.chat.completions.create(
         model=model,
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": prompt}]
     )
-    return response["message"]["content"]
+    return completion.choices[0].message.content
 
-def answer_question(question: str, model: str = "llama3.1:8b") -> str:
+def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
     """
     Runs one full RAG query using the existing pipeline.
     Returns the answer as a string.
@@ -315,10 +312,10 @@ def answer_question(question: str, model: str = "llama3.1:8b") -> str:
         return "I don't know."
 
     # build RAG prompt
-    prompt = make_ollama_json_prompt(question, chunks)
+    prompt = make_json_prompt(question, chunks)
 
     # call Ollama
-    answer = callOllama(prompt, model)
+    answer = callLLM(prompt, model)
 
     # save to history
     qa_history.append({"question": question, "answer": answer})
