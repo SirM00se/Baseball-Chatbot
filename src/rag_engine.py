@@ -130,7 +130,7 @@ def querySQLite(ids, scores):
     return retrieved_chunks
 
 
-def make_ollama_json_prompt(question, chunks):
+def make_json_prompt(question, chunks):
     """
     Creates a clean JSON-style RAG prompt for Ollama.
 
@@ -312,7 +312,7 @@ def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
         return "I don't know."
 
     # build RAG prompt
-    prompt = make_ollama_json_prompt(question, chunks)
+    prompt = make_json_prompt(question, chunks)
 
     # call Ollama
     answer = callLLM(prompt, model)
