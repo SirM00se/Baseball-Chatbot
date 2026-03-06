@@ -23,6 +23,7 @@ except Exception as e:
     print(f"FAISS index loading error: {e}")
     sys.exit(1)
 stmodel = SentenceTransformer('all-MiniLM-L6-v2')
+
 #lists that store context
 question_list = []
 qa_history = []
@@ -180,7 +181,6 @@ def rewrite_question(question, model):
     :param model: Ollama model
     :return: the rewritten question
     """
-    global conversation_summary
 
     system_prompt = """
 You rewrite follow-up questions so they are self-contained.
@@ -196,6 +196,12 @@ Return ONLY the rewritten question.
     user_prompt = f"""
 Conversation summary (for reference only; do not add facts from it):
 {conversation_summary}
+
+List of previous questions (for reference only; do not add facts from it):
+{question_list}
+
+List of previous answers (for reference only; do not add facts from it):
+{qa_history}
 
 Original question:
 "{question}"
@@ -288,15 +294,15 @@ def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
     """
     global question_list, qa_history
 
-    # add to context
-    question_list.append(question)
-
     # conversation summary every 5 turns
     if (len(qa_history) == 1) or (len(qa_history) % 5 == 0):
         update_summary(model)
 
     # rewrite question
     rewritten_question = rewrite_question(question, model)
+
+    # add to context
+    question_list.append(rewritten_question)
 
     # embedding
     embedding = createEmbeddingQuestion(rewritten_question)
@@ -319,6 +325,12 @@ def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
 
     # save to history
     qa_history.append({"question": question, "answer": answer})
+
+    # removes older history
+    if len(qa_history) > 5:
+        truncateContext(qa_history)
+    if len(question_list) > 5:
+        truncateContext(question_list)
 
     return answer
 
