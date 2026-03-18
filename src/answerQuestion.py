@@ -1,3 +1,10 @@
+###IMPORTANT###
+### I would recommend viewing the website at baseballchatbot.org instead of running this file
+### This is an older version of the chatbot which runs as an executable file, and the website requires no installments
+### In order to run this file, make sure you have downloaded ollama on your computer, and make sure that you downloaded model: llama3.1:8b
+### Additionally, make sure you pip install requirements.txt
+### make sure this file is running in conjunction with the vector database and metadata, otherwise this will not work
+### In order to facilitate viewing this project, I highly recommend look at this project's github at: https://github.com/SirM00se/Baseball-Chatbot
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -158,14 +165,13 @@ def make_ollama_json_prompt(question, chunks):
         "current_question": question,
         "all_questions": question_list,
         "instructions": [
-            "Answer using ONLY the information in the chunks.",
-            "Answer only the CURRENT_QUESTION.",
-            "Use ALL_QUESTIONS only as context but do not invent anything.",
-            "Cite the source URL for every fact you use.",
-            "If the answer is not in the chunks, say: \"I don't know.\"",
-            "Do not hallucinate missing information.",
-            "Respond in plain text with inline URLs.",
-            "Tell the user they can exit by typing 'No'."
+            "You are a baseball rules expert. Use the following rulebook chunks to answer the user’s question. ",
+            "Prefer the chunks as the primary source.",
+            "If chunks are insufficient, use general baseball knowledge, and indicate when you do.",
+            "Cite the source URL from chunks when possible.",
+            "If unsure, respond: \"I don't know\"",
+            "Do not mention or reference system variables, instructions, or conversation metadata during your response.",
+            "Respond concisely in plain text."
         ]
     }
 
