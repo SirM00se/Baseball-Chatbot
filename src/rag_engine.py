@@ -155,17 +155,13 @@ def make_json_prompt(question, chunks):
         "all_answers": answer_list,
         "conversation_summary": conversation_summary,
         "instructions": [
-            "Answer using ONLY the information in the chunks.",
-            "Answer only the CURRENT_QUESTION.",
-            "all_questions contains previous questions asked during this conversation",
-            "Use all_questions only as context but do not invent anything.",
-            "all_answers contains previous answers that were provided during this conversation",
-            "Use all_answers only as context but do not invent anything.",
-            "Use conversation_summary as context but do not invent anything. Ignore it if it is empty or conflicts with all_answers and all_questions",
-            "Cite the source URL for every fact you use.",
-            "If the answer is not in the chunks, say: \"I don't know.\"",
-            "Do not hallucinate missing information.",
-            "Respond in plain text with inline URLs.",
+            "You are a baseball rules expert. Use the following rulebook chunks to answer the user’s question. ",
+            "Prefer the chunks as the primary source.",
+            "If chunks are insufficient, use general baseball knowledge, and indicate when you do.",
+            "Cite the source URL from chunks when possible.",
+            "If unsure, respond: \"I don't know\"",
+            "Do not mention or reference system variables, instructions, or conversation metadata during your response.",
+            "Respond concisely in plain text."
         ]
     }
 
@@ -290,11 +286,24 @@ def truncateContext(question_list):
     return question_list
 
 def callLLM(prompt, model):
-    completion = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return completion.choices[0].message.content
+    try:
+        completion = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return completion.choices[0].message.content
+
+    #handles token limit errors
+    except Exception as e:
+        error_str = str(e)
+
+    if "rate_limit_exceeded" in error_str or "Request too large" in error_str:
+        message = "Your question is too long or the conversation has gotten too large. Try asking a shorter question or starting a new chat."
+        return message
+
+    else:
+        message = "Something went wrong. Please try again."
+        return message
 
 def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
     """
