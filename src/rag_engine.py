@@ -23,9 +23,10 @@ except Exception as e:
     print(f"FAISS index loading error: {e}")
     sys.exit(1)
 stmodel = SentenceTransformer('all-MiniLM-L6-v2')
+
 #lists that store context
 question_list = []
-qa_history = []
+answer_list = []
 conversation_summary = ""
 
 def createEmbeddingQuestion(question) -> np.ndarray:
@@ -151,10 +152,16 @@ def make_json_prompt(question, chunks):
         "chunks": doc_chunks,
         "current_question": question,
         "all_questions": question_list,
+        "all_answers": answer_list,
+        "conversation_summary": conversation_summary,
         "instructions": [
             "Answer using ONLY the information in the chunks.",
             "Answer only the CURRENT_QUESTION.",
-            "Use ALL_QUESTIONS only as context but do not invent anything.",
+            "all_questions contains previous questions asked during this conversation",
+            "Use all_questions only as context but do not invent anything.",
+            "all_answers contains previous answers that were provided during this conversation",
+            "Use all_answers only as context but do not invent anything.",
+            "Use conversation_summary as context but do not invent anything. Ignore it if it is empty or conflicts with all_answers and all_questions",
             "Cite the source URL for every fact you use.",
             "If the answer is not in the chunks, say: \"I don't know.\"",
             "Do not hallucinate missing information.",
@@ -180,7 +187,6 @@ def rewrite_question(question, model):
     :param model: Ollama model
     :return: the rewritten question
     """
-    global conversation_summary
 
     system_prompt = """
 You rewrite follow-up questions so they are self-contained.
@@ -194,8 +200,14 @@ Return ONLY the rewritten question.
 """
 
     user_prompt = f"""
-Conversation summary (for reference only; do not add facts from it):
+Conversation summary (for reference only; do not add facts from it). If Conversation summary is blank, igonre it:
 {conversation_summary}
+
+List of previous questions (for reference only; do not add facts from it):
+{question_list}
+
+List of previous answers (for reference only; do not add facts from it):
+{answer_list}
 
 Original question:
 "{question}"
@@ -228,20 +240,23 @@ def update_summary(model, max_turns=5):
     :param max_turns: number of turns in the conversation
     :return: the summary
     """
-    global qa_history, conversation_summary
+    global answer_list, conversation_summary, question_list
 
     # Take the last few turns for summarization
-    recent_qa = qa_history[-max_turns:]
+    recent_questions = question_list[-max_turns:]
+    recent_answers = answer_list[-max_turns:]
 
-    history_text = "\n".join(f"Q: {qa['question']}\nA: {qa['answer']}" for qa in recent_qa)
-
-    prompt = f"""
-Summarize the following conversation into concise key facts.
-Do not include irrelevant details.
-
-{history_text}
-"""
-
+    history_text = "\n".join(f"Q: {q}\nA: {a}" for q, a in zip(recent_questions, recent_answers))
+    if (conversation_summary == ""):
+        prompt = f"""
+        Use {history_text} to summarize the following conversation into concise key facts.
+        Do not include irrelevant details.
+        """
+    else:
+        prompt = f"""
+        Use {history_text} and {conversation_summary} to summarize the following conversation into concise key facts.
+        Do not include irrelevant details.
+        """
     completion = client.chat.completions.create(
         model=model,
         messages=[
@@ -286,13 +301,10 @@ def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
     Runs one full RAG query using the existing pipeline.
     Returns the answer as a string.
     """
-    global question_list, qa_history
-
-    # add to context
-    question_list.append(question)
+    global question_list, answer_list
 
     # conversation summary every 5 turns
-    if (len(qa_history) == 1) or (len(qa_history) % 5 == 0):
+    if (len(answer_list) == 1) or (len(answer_list) % 5 == 0):
         update_summary(model)
 
     # rewrite question
@@ -318,7 +330,14 @@ def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
     answer = callLLM(prompt, model)
 
     # save to history
-    qa_history.append({"question": question, "answer": answer})
+    question_list.append(rewritten_question)
+    answer_list.append(answer)
+
+    # removes older history
+    if len(answer_list) > 5:
+        truncateContext(answer_list)
+    if len(question_list) > 5:
+        truncateContext(question_list)
 
     return answer
 
