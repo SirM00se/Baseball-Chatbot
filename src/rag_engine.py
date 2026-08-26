@@ -305,7 +305,7 @@ def callLLM(prompt, model):
         message = "Something went wrong. Please try again."
         return message
 
-def answer_question(question: str, model: str = "llama-3.1-8b-instant") -> str:
+def answer_question(question: str, model: str = "openai/gpt-oss-20b") -> str:
     """
     Runs one full RAG query using the existing pipeline.
     Returns the answer as a string.
