@@ -1,13 +1,12 @@
 import pytest
 import pandas as pd
 from unittest.mock import patch, MagicMock
+from src import dataScraper # your main script
 
-import dataScraper  # your main script
 
-
-@patch("dataScraper.requests.get")
-@patch("dataScraper.webdriver.Chrome")
-@patch("dataScraper.ChromeDriverManager.install")
+@patch("src.dataScraper.requests.get")
+@patch("src.dataScraper.webdriver.Chrome")
+@patch("src.dataScraper.ChromeDriverManager.install")
 def test_end_to_end_dataScraper(mock_install, mock_chrome, mock_get, tmp_path):
     """
     E2E test for the dataScraper:

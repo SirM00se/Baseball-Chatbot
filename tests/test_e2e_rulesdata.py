@@ -5,8 +5,8 @@ import faiss
 import random
 
 # Paths to your pre-generated files
-INDEX_PATH = "../databases/vector_index.faiss"
-METADATA_PATH = "../data/vector_metadata.csv"
+INDEX_PATH = "databases/vector_index.faiss"
+METADATA_PATH = "data/vector_metadata.csv"
 
 def test_existing_database():
     #  Load metadata

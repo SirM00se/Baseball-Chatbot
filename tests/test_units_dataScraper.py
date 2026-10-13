@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from dataScraper import create_driver, get_rule_links, fetch_info
+from src.dataScraper import create_driver, get_rule_links, fetch_info
 
 def test_create_driver_success():
-    with patch("dataScraper.webdriver.Chrome") as mock_chrome:
+    with patch("src.dataScraper.webdriver.Chrome") as mock_chrome:
         driver = MagicMock()
         mock_chrome.return_value = driver
         result = create_driver()
@@ -18,7 +18,7 @@ def test_get_rule_links_parses_links():
     urls = get_rule_links(mock_driver, "https://fake.com")
     assert urls == ["https://example.com/rule1"]
 
-@patch("dataScraper.requests.get")
+@patch("src.dataScraper.requests.get")
 def test_fetch_info_parses_html(mock_get):
     html = """
     <html><body>
