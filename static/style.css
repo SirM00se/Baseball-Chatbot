@@ -1,0 +1,102 @@
+body {
+    font-family: Arial;
+    margin: 40px;
+    background-color: SlateGrey;
+}
+
+h2 {
+    color: Seashell;
+    font-family: serif;
+}
+
+/* Layout container */
+.container {
+    display: flex;
+    gap: 40px;
+    max-width: 1100px;
+}
+
+/* Chat section */
+.chat-section {
+    flex: 2;
+}
+
+/* Description section */
+.description {
+    flex: 1;
+    color: Seashell;
+    font-family: serif;
+    line-height: 1.5;
+}
+
+#chatbox {
+    margin-bottom: 20px;
+}
+
+#message {
+    width: 70%;
+}
+
+.bubble {
+    max-width: 70%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.bubble a {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.bubble a:hover {
+    color: #003580;
+}
+
+/* Container for the 3 bouncing dots */
+.loading-bubble {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 12px 16px;
+    min-height: 20px;
+}
+
+/* Individual bouncing dot */
+.loading-bubble .dot {
+    width: 8px;
+    height: 8px;
+    background-color: #555;
+    border-radius: 50%;
+    display: inline-block;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+/* Stagger animations for wave effect */
+.loading-bubble .dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.loading-bubble .dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+.loading-bubble .dot:nth-child(3) {
+    animation-delay: 0s;
+}
+
+@keyframes bounce {
+    0%, 80%, 100% {
+        transform: scale(0.4);
+        opacity: 0.4;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.user { background: #cce5ff; margin-left: auto; }
+.bot  { background: #e2e2e2; margin-right: auto; }
