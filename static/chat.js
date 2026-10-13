@@ -9,12 +9,57 @@ if (!sessionId) {
     sessionStorage.setItem("chat_session_id", sessionId);
 }
 
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatMessage(text) {
+    if (!text) return "";
+
+    // Escape HTML first to prevent XSS
+    let escaped = escapeHtml(text);
+
+    // 1. Convert Markdown links: [text](https://...)
+    escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/g, (match, linkText, url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+    });
+
+    // 2. Convert standalone URLs that are not already part of an <a> tag
+    escaped = escaped.replace(/(<a\b[^>]*>.*?<\/a>)|(https?:\/\/[^\s<"'\u3010\u3011]+)/g, (match, existingLink, url) => {
+        if (existingLink) {
+            return existingLink;
+        }
+
+        let cleanUrl = url;
+        let trailing = "";
+
+        while (/[.,;:!?)\]\u3010\u3011]$/.test(cleanUrl) || cleanUrl.endsWith("&gt;")) {
+            if (cleanUrl.endsWith("&gt;")) {
+                trailing = "&gt;" + trailing;
+                cleanUrl = cleanUrl.slice(0, -4);
+            } else {
+                trailing = cleanUrl.slice(-1) + trailing;
+                cleanUrl = cleanUrl.slice(0, -1);
+            }
+        }
+
+        return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer">${cleanUrl}</a>${trailing}`;
+    });
+
+    return escaped;
+}
+
 async function sendMessage() {
     const userMsg = input.value;
     if (!userMsg) return;
 
     // show user's message
-    chatbox.innerHTML += `<div class="bubble user">${userMsg}</div>`;
+    const userElem = document.createElement("div");
+    userElem.className = "bubble user";
+    userElem.textContent = userMsg;
+    chatbox.appendChild(userElem);
     input.value = "";
 
     // disable further input
@@ -54,10 +99,16 @@ async function sendMessage() {
         // remove loading animation
         loadingElem.remove();
 
-        // show bot's message
-        chatbox.innerHTML += `<div class="bubble bot">${botMsg}</div>`;
+        // show bot's message with formatted links
+        const botElem = document.createElement("div");
+        botElem.className = "bubble bot";
+        botElem.innerHTML = formatMessage(botMsg);
+        chatbox.appendChild(botElem);
     } catch (err) {
-        chatbox.innerHTML += `<div class="bubble bot">Error connecting to server. Please try again.</div>`;
+        const errElem = document.createElement("div");
+        errElem.className = "bubble bot";
+        errElem.textContent = "Error connecting to server. Please try again.";
+        chatbox.appendChild(errElem);
     } finally {
         // re-enable input
         input.disabled = false;
