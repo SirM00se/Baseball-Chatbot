@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 import pandas as pd
-from dataScraper import get_rule_links, fetch_info
+from src.dataScraper import get_rule_links, fetch_info
 
 @pytest.fixture
 def mock_driver():
@@ -15,7 +15,7 @@ def mock_driver():
     return driver
 
 
-@patch("dataScraper.requests.get")
+@patch("src.dataScraper.requests.get")
 def test_dataScraper_integration(mock_get, mock_driver, tmp_path):
     """
     Integration test:
