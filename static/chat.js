@@ -16,7 +16,22 @@ async function sendMessage() {
     // show user's message
     chatbox.innerHTML += `<div class="bubble user">${userMsg}</div>`;
     input.value = "";
+
+    // disable further input
+    input.disabled = true;
+    button.disabled = true;
+
+    // show loading animation
+    const loadingElem = document.createElement("div");
+    loadingElem.className = "bubble bot loading-bubble";
+    loadingElem.innerHTML = `
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+    `;
+    chatbox.appendChild(loadingElem);
     chatbox.scrollTop = chatbox.scrollHeight;
+
 
     try {
         // send message with session_id to FastAPI backend
@@ -36,13 +51,20 @@ async function sendMessage() {
             sessionStorage.setItem("chat_session_id", sessionId);
         }
 
+        // remove loading animation
+        loadingElem.remove();
+
         // show bot's message
         chatbox.innerHTML += `<div class="bubble bot">${botMsg}</div>`;
     } catch (err) {
         chatbox.innerHTML += `<div class="bubble bot">Error connecting to server. Please try again.</div>`;
+    } finally {
+        // re-enable input
+        input.disabled = false;
+        button.disabled = false;
+        input.focus();
+        chatbox.scrollTop = chatbox.scrollHeight;
     }
-
-    chatbox.scrollTop = chatbox.scrollHeight;   // auto scroll to bottom
 }
 
 button.addEventListener("click", sendMessage);
