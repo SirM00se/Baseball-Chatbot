@@ -29,6 +29,7 @@ Baseball-Chatbot/
 │   ├── BaseballRules.txt             # Official MLB rules text
 │   ├── Definition of Terms.txt       # Official glossary definitions text
 │   ├── baseballrules.csv             # Combined scraped glossary and parsed rules dataset
+│   ├── eval_dataset.json             # Golden evaluation dataset with questions and ground truth
 │   └── vector_metadata.csv           # Text chunks with IDs and embedding vectors
 ├── databases/                        # Vector index and relational database storage
 │   ├── baseball_vectors.db           # SQLite database storing rule text, URLs, and IDs
@@ -37,6 +38,7 @@ Baseball-Chatbot/
 │   ├── AddBaseballRules.py           # Parses and chunks local rulebook texts into CSV
 │   ├── answerQuestion.py             # CLI interactive chatbot prototype using local Ollama
 │   ├── dataScraper.py                # Automated Selenium & BeautifulSoup scraper for MLB glossary
+│   ├── evaluate_ragas.py             # Automated RAG evaluation pipeline using Ragas
 │   ├── main.py                       # FastAPI REST API and static web server
 │   ├── rag_engine.py                 # Core RAG engine: FAISS search, SQLite lookup, & Groq LLM client
 │   ├── rebuildVectorDatabase.py      # Automated pipeline runner to rebuild index and database
@@ -49,9 +51,11 @@ Baseball-Chatbot/
 ├── tests/                            # Pytest automated test suite
 │   ├── test_e2e_dataScraper.py       # E2E tests for scraping pipeline
 │   ├── test_e2e_rulesdata.py         # Vector index and SQLite retrieval validation tests
+│   ├── test_evaluation.py            # Retrieval accuracy unit tests
 │   ├── test_integration_dataScraper.py # Integration tests for HTML parsing and web scraping
 │   ├── test_rag_engine.py            # Unit and session-isolation tests for RAG engine
 │   └── test_units_dataScraper.py     # Unit tests for individual scraping helpers
+├── ragas_results.csv                 # Exported evaluation metrics results
 └── requirements.txt                  # Python dependencies
 ```
 
@@ -148,6 +152,34 @@ Execute the automated test suite using `pytest`:
 
 ```bash
 pytest tests/
+```
+
+---
+
+## RAG Pipeline Evaluation (Ragas)
+
+The repository includes an automated evaluation pipeline using the [Ragas](https://docs.ragas.io/) framework to assess retrieval and generation quality against a golden dataset (`data/eval_dataset.json`).
+
+### What It Does
+
+The `src/evaluate_ragas.py` script:
+1. Loads evaluation test cases containing questions and ground-truth references.
+2. Runs the question through the `RAGEngine` to retrieve relevant context chunks from the FAISS/SQLite vector store.
+3. Generates the model's answer.
+4. Computes core RAG evaluation metrics using LLM/embedding evaluators:
+   - **Context Precision**: Evaluates whether retrieved contexts are relevant and ranked appropriately.
+   - **Context Recall**: Measures whether all necessary ground-truth information was successfully retrieved.
+   - **Faithfulness**: Measures whether the generated answer is grounded in the retrieved context (preventing hallucinations).
+   - **Answer Relevancy**: Quantifies how directly relevant the generated response is to the input query.
+5. Exports full evaluation scores and sample breakdowns to `ragas_results.csv`.
+
+### Running Evaluation
+
+Ensure your `OPENAI_API_KEY` is exported (used by Ragas for evaluation LLM and embedding scoring):
+
+```bash
+export OPENAI_API_KEY="your_openai_api_key_here"
+python src/evaluate_ragas.py
 ```
 
 ---

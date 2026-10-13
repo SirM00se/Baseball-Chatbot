@@ -1,0 +1,20 @@
+[
+  {
+    "question": "What happens when an infield fly is called?",
+    "ground_truth_tag": "Infield Fly",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/infield-fly",
+    "ground_truth_answer": "The batter is out regardless of whether the fly ball is caught, if there are runners on first and second or bases loaded with less than two outs."
+  },
+  {
+    "question": "What is considered a balk by a pitcher?",
+    "ground_truth_tag": "Balk",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/balk",
+    "ground_truth_answer": "An illegal act by the pitcher with runner(s) on base, awarding each runner one base."
+  },
+  {
+    "question": "Can a designated hitter play in the field?",
+    "ground_truth_tag": "Designated Hitter",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/designated-hitter",
+    "ground_truth_answer": "If a DH plays defense, the team forfeits the DH role for the rest of the game."
+  }
+]
