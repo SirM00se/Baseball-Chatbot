@@ -5,12 +5,24 @@ import sqlite3
 import json
 import textwrap
 import os
-from difflib import SequenceMatcher
+import re
+import logging
 from groq import Groq
+from contextlib import closing
 
+# logs unpredictable errors
+logger = logging.getLogger(__name__)
 
+# Default model to use if not specified in environment
 DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
 
+# Common stopwords to ignore during question rewriting
+_STOPWORDS = {"a", "an", "the", "is", "are", "was", "what", "how", "about",
+              "and", "or", "of", "in", "on", "to", "do", "does", "it", "for"}
+
+# Custom exceptions
+class LLMError(Exception):
+    """Raised when the LLM call fails; the message is safe to show to the user."""
 
 class SessionState:
     """Stores conversation history and summary for a single user/session."""
@@ -18,6 +30,7 @@ class SessionState:
         self.question_list: list[str] = []
         self.answer_list: list[str] = []
         self.conversation_summary: str = ""
+        self.turn_count: int = 0
 
 
 class RAGEngine:
@@ -83,27 +96,19 @@ class RAGEngine:
         :param k: number of top results to retrieve
         :return: Tuple of (sorted_ids, sorted_scores) or None if no vectors found
         """
-        if len(embedding.shape) == 1:
+        if embedding.ndim == 1:
             embedding = embedding.reshape(1, -1)
 
         scores, ids = self.index.search(embedding, k)
 
-        if ids.size == 0 or (ids[0].size > 0 and ids[0][0] == -1):
+        # FAISS pads with -1 when fewer than k vectors match
+        pairs = [(i, s) for i, s in zip(ids[0].tolist(), scores[0].tolist()) if i != -1]
+
+        if not pairs:
             return None, None
 
-        scores = scores[0].tolist()
-        ids = ids[0].tolist()
-
-        # Pair together and sort by distance score
-        pairs = sorted(zip(ids, scores), key=lambda x: x[1])
-
-        sorted_ids = [p[0] for p in pairs if p[0] != -1]
-        sorted_scores = [p[1] for p in pairs if p[0] != -1]
-
-        if not sorted_ids:
-            return None, None
-
-        return sorted_ids, sorted_scores
+        result_ids, result_scores = zip(*pairs)
+        return list(result_ids), list(result_scores)
 
     def query_sqlite(self, ids: list[int], scores: list[float]) -> list[dict]:
         """
@@ -116,16 +121,14 @@ class RAGEngine:
         if not ids:
             return []
 
+        placeholders = ",".join("?" * len(ids))
+        query = f"SELECT url, text, tag, id FROM rules WHERE id IN ({placeholders})"
+
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
-            placeholders = ",".join(["?"] * len(ids))
-            query = f"SELECT url, text, tag, id FROM rules WHERE id IN ({placeholders})"
-            cursor.execute(query, ids)
-            rows = cursor.fetchall()
-            conn.close()
+            with closing(sqlite3.connect(self.db_path)) as conn:
+                rows = conn.execute(query, ids).fetchall()
         except sqlite3.Error as e:
-            raise RuntimeError(f"SQLite query error: {e}")
+            raise RuntimeError(f"SQLite query error: {e}") from e
 
         row_map = {row[3]: row for row in rows}
 
@@ -243,6 +246,7 @@ Rewrite following the rules:
 
             return rewritten_question
         except Exception:
+            logger.warning("Question rewrite failed; using original question", exc_info=True)
             return question
 
     def update_summary(
@@ -283,15 +287,18 @@ Rewrite following the rules:
             )
             session.conversation_summary = completion.choices[0].message.content.strip()
         except Exception:
-            pass
+            logger.warning("Summary update failed; keeping previous summary", exc_info=True)
 
         return session.conversation_summary
 
     @staticmethod
-    def too_different(original: str, rewritten: str, threshold: float = 0.35) -> bool:
-        """Checks if rewritten question drifted too far from original."""
-        ratio = SequenceMatcher(None, original, rewritten).ratio()
-        return ratio < threshold
+    def too_different(original: str, rewritten: str, min_overlap: float = 0.6) -> bool:
+        """Flags a rewrite that dropped too many of the original's key words."""
+        tokens = lambda s: set(re.findall(r"[a-z0-9']+", s.lower())) - _STOPWORDS
+        orig = tokens(original)
+        if not orig:
+            return False  # nothing to compare, trust the rewrite
+        return len(orig & tokens(rewritten)) / len(orig) < min_overlap
 
     @staticmethod
     def truncate_context(history_list: list, max_size: int = 5) -> list:
@@ -302,11 +309,11 @@ Rewrite following the rules:
 
     def call_llm(self, prompt: str, model: str = None) -> str:
         """
-        Sends prompt to Groq API and handles rate limits or API errors cleanly.
+        sends the generated prompt to the LLM and returns the response.
 
-        :param prompt: full prompt string
-        :param model: Groq model identifier
-        :return: LLM response content string
+        :param prompt: prompt created based on the user's question
+        :param model: Groq model used to generate the response
+        :return: the response from the LLM
         """
         target_model = model or os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL)
         try:
@@ -314,18 +321,44 @@ Rewrite following the rules:
                 model=target_model,
                 messages=[{"role": "user", "content": prompt}]
             )
-            return completion.choices[0].message.content
         except Exception as e:
             error_str = str(e)
             if "rate_limit_exceeded" in error_str or "Request too large" in error_str:
-                return "Your question is too long or the conversation has gotten too large. Try asking a shorter question or starting a new chat."
+                raise LLMError(
+                    "Your question is too long or the conversation has gotten too large. "
+                    "Try asking a shorter question or starting a new chat."
+                ) from e
             if "model_not_found" in error_str or "does not exist or you do not have access" in error_str:
-                return (
-                    f"The model '{target_model}' was not found or is not accessible with your Groq API key. "
-                    "You can specify a supported model by setting the GROQ_MODEL environment variable "
-                    "(e.g., export GROQ_MODEL=openai/gpt-oss-120b, openai/gpt-oss-20b, or qwen/qwen3.8-27b)."
-                )
-            return f"An error occurred while generating a response: {error_str}"
+                raise LLMError(
+                    f"The model '{target_model}' was not found or is not accessible with your "
+                    "Groq API key. Set the GROQ_MODEL environment variable to a supported model."
+                ) from e
+            raise LLMError(f"An error occurred while generating a response: {error_str}") from e
+
+        content = completion.choices[0].message.content
+        if not content or not content.strip():
+            raise LLMError("The model returned an empty response. Please try again.")
+        return content
+
+    def record_turn(self, session: SessionState, question: str, answer: str, model: str) -> None:
+        """
+        Records a user question and answer in the session state, and updates the summary if necessary.
+
+        :param session: the user's session state
+        :param question: user question
+        :param answer: answer to the user question
+        :param model: the model used to generate the answer
+        :return: no return
+        """
+        session.question_list.append(question)
+        session.answer_list.append(answer)
+        session.turn_count += 1
+
+        self.truncate_context(session.question_list, max_size=5)
+        self.truncate_context(session.answer_list, max_size=5)
+
+        if session.turn_count % 5 == 0:
+            self.update_summary(session, model=model)
 
     def answer_question(
         self,
@@ -344,10 +377,6 @@ Rewrite following the rules:
         target_model = model or os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL)
         session = self.get_session(session_id)
 
-        # Trigger summary periodically
-        if len(session.answer_list) > 0 and len(session.answer_list) % 5 == 0:
-            self.update_summary(session, model=target_model)
-
         # Rewrite question for context-awareness
         rewritten_question = self.rewrite_question(question, session, model=target_model)
 
@@ -357,27 +386,27 @@ Rewrite following the rules:
         # Retrieve nearest vector IDs from FAISS
         ids, scores = self.generate_ids(embedding)
         if not ids:
-            return "I don't know."
+            answer = "I don't know."
+            self.record_turn(session, rewritten_question, answer, target_model)
+            return answer
 
-        # Retrieve chunk metadata from SQLite
+        # Retrieve metadata for retrieved chunks
         chunks = self.query_sqlite(ids, scores)
         if not chunks:
-            return "I don't know."
+            answer = "I don't know."
+            self.record_turn(session, rewritten_question, answer, target_model)
+            return answer
 
         # Build JSON prompt
         prompt = self.make_json_prompt(question, chunks, session)
 
         # Call Groq LLM
-        answer = self.call_llm(prompt, model=target_model)
+        try:
+            answer = self.call_llm(prompt, model=target_model)
+        except LLMError as e:
+            return str(e)   # still not recorded, per item 3
 
-        # Append turn to session memory
-        session.question_list.append(rewritten_question)
-        session.answer_list.append(answer)
-
-        # Manage history size
-        self.truncate_context(session.question_list, max_size=5)
-        self.truncate_context(session.answer_list, max_size=5)
-
+        self.record_turn(session, rewritten_question, answer, target_model)
         return answer
 
 
