@@ -149,3 +149,9 @@ Execute the automated test suite using `pytest`:
 ```bash
 pytest tests/
 ```
+
+---
+
+## Credits
+
+- Baseball Icon by Vincent Le Moign on [Icon-Icons.com](https://icon-icons.com/authors/514-vincent-le-moign)
