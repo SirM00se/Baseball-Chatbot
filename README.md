@@ -8,14 +8,16 @@ Live Demo: [baseballchatbot.org](https://baseballchatbot.org)
 
 ## Overview
 
-The **Baseball Rules RAG Chatbot** enables baseball fans, umpires, and players to query complex MLB regulations and terminology in natural language. The system pairs dense vector search over scraped official rules with multi-turn conversational memory, drift detection, and high-speed LLM inference via the Groq API.
+The **Baseball Rules RAG Chatbot** enables baseball fans, umpires, coaches, and players to query complex MLB regulations and terminology in natural language. The system pairs dense vector search over scraped official rules and glossary definitions with multi-turn conversational memory, drift detection, and high-speed LLM inference via the Groq API (as well as support for local LLMs via Ollama).
 
-### Key Architecture & Engineering Highlights
-- **End-to-End Data Pipeline**: Automated web scraping of MLB glossary and rulebooks using Selenium and BeautifulSoup, parsed and chunked for semantic retrieval.
-- **Hybrid Storage & Indexing**: Dense text embeddings generated with `all-MiniLM-L6-v2` (Sentence-Transformers) and indexed in FAISS (`IndexFlatL2` / `IndexIDMap`) for similarity search, combined with SQLite for structured rule metadata and URL referencing.
-- **Context & Drift-Aware Conversation**: Contextual query rewriting to resolve pronouns and implicit references across multi-turn chats, with `difflib.SequenceMatcher` drift prevention heuristics and periodic context summarization.
-- **Session-Isolated FastAPI Backend**: Clean session management isolating concurrent user histories, exposed via FastAPI REST endpoints with static HTML/JS frontend delivery.
-- **Production-Grade Testing**: Automated test suite containing unit, integration, and end-to-end pipeline validation with `pytest` and `unittest.mock`.
+### Key Features & Architecture Highlights
+- **End-to-End Ingestion Pipeline**: Automated web scraping of MLB glossary pages using Selenium and BeautifulSoup, combined with structured parsing and chunking of official MLB rulebooks and definition texts.
+- **Dense Vector Search & Storage**: Dense text embeddings generated with `all-MiniLM-L6-v2` (Sentence-Transformers) and indexed in FAISS (`IndexFlatL2` with `IndexIDMap`) for rapid similarity search.
+- **Relational Metadata Store**: SQLite (`databases/baseball_vectors.db`) stores text chunks, tags, rule IDs, and source citation URLs for rich grounded answers.
+- **Context & Drift-Aware Conversational Memory**: Multi-turn session management with contextual query rewriting to resolve pronouns and implicit references, guarded by `difflib.SequenceMatcher` similarity heuristics to prevent topic drift, along with periodic context summarization.
+- **FastAPI Web Backend & Modern UI**: Session-isolated FastAPI REST API exposing `/chat` and serving static frontend assets (`index.html`, `style.css`, `chat.js`) with responsive chat bubbles and markdown link rendering.
+- **Local CLI Prototype Support**: Includes `src/answerQuestion.py` for running an interactive terminal assistant powered by local Ollama models (`llama3.1:8b`).
+- **Comprehensive Testing Suite**: Unit, integration, and end-to-end test coverage across scraping, database retrieval, prompt generation, session isolation, and RAG engine logic using `pytest` and `unittest.mock`.
 
 ---
 
@@ -23,37 +25,47 @@ The **Baseball Rules RAG Chatbot** enables baseball fans, umpires, and players t
 
 ```text
 Baseball-Chatbot/
-├── data/                         # Scraped rulebooks, glossaries, and CSV metadata
-├── databases/                    # FAISS vector index and SQLite database
-│   ├── baseball_vectors.db
-│   └── vector_index.faiss
-├── src/                          # Application source code
-│   ├── dataScraper.py            # Automated scraper for MLB glossary rules
-│   ├── AddBaseballRules.py       # Rulebook text processing and chunking
-│   ├── vectordatabase.py         # Embedding generation and FAISS indexing
-│   ├── SQLConversion.py          # SQLite metadata database builder
-│   ├── rebuildVectorDatabase.py  # Pipeline orchestrator to regenerate index & DB
-│   ├── rag_engine.py             # Core RAG engine, vector search & Groq LLM client
-│   └── main.py                   # FastAPI REST API & static file server
-├── static/                       # Frontend assets
-│   ├── index.html                # Chat UI
-│   ├── chat.js                   # Client-side session and async chat controller
-│   └── styles.css                # Interface styling
-├── tests/                        # Comprehensive test suite
-│   ├── test_units_dataScraper.py
-│   ├── test_integration_dataScraper.py
-│   ├── test_e2e_dataScraper.py
-│   ├── test_e2e_rulesdata.py
-│   ├── test_e2e_answerQuestion.py
-│   └── test_rag_engine.py
-└── requirements.txt              # Project dependencies
+├── data/                             # Raw texts, parsed datasets, and vector metadata
+│   ├── BaseballRules.txt             # Official MLB rules text
+│   ├── Definition of Terms.txt       # Official glossary definitions text
+│   ├── baseballrules.csv             # Combined scraped glossary and parsed rules dataset
+│   └── vector_metadata.csv           # Text chunks with IDs and embedding vectors
+├── databases/                        # Vector index and relational database storage
+│   ├── baseball_vectors.db           # SQLite database storing rule text, URLs, and IDs
+│   └── vector_index.faiss            # FAISS vector index for dense similarity search
+├── src/                              # Application source code
+│   ├── AddBaseballRules.py           # Parses and chunks local rulebook texts into CSV
+│   ├── answerQuestion.py             # CLI interactive chatbot prototype using local Ollama
+│   ├── dataScraper.py                # Automated Selenium & BeautifulSoup scraper for MLB glossary
+│   ├── main.py                       # FastAPI REST API and static web server
+│   ├── rag_engine.py                 # Core RAG engine: FAISS search, SQLite lookup, & Groq LLM client
+│   ├── rebuildVectorDatabase.py      # Automated pipeline runner to rebuild index and database
+│   ├── SQLConversion.py              # Loads metadata CSV and writes SQLite database table
+│   └── vectordatabase.py             # Generates sentence embeddings and builds FAISS index
+├── static/                           # Frontend web interface assets
+│   ├── chat.js                       # Session persistence, API communication, and link formatting
+│   ├── index.html                    # Chatbot web interface and layout
+│   └── style.css                     # Responsive styling and chat bubble animations
+├── tests/                            # Pytest automated test suite
+│   ├── test_e2e_dataScraper.py       # E2E tests for scraping pipeline
+│   ├── test_e2e_rulesdata.py         # Vector index and SQLite retrieval validation tests
+│   ├── test_integration_dataScraper.py # Integration tests for HTML parsing and web scraping
+│   ├── test_rag_engine.py            # Unit and session-isolation tests for RAG engine
+│   └── test_units_dataScraper.py     # Unit tests for individual scraping helpers
+└── requirements.txt                  # Python dependencies
 ```
 
 ---
 
 ## Getting Started
 
-### 1. Clone & Install Dependencies
+### 1. Prerequisites
+
+- Python 3.10+
+- Google Chrome & ChromeDriver (if running the live web scraper)
+- Groq API Key (for FastAPI web app) or Ollama with `llama3.1:8b` (for CLI prototype)
+
+### 2. Clone & Install Dependencies
 
 ```bash
 git clone https://github.com/blakelittlejohn/Baseball-Chatbot.git
@@ -67,9 +79,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment Variables
+### 3. Configure Environment Variables
 
-Set your Groq API key (and optionally override the default model, e.g. `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, or `qwen/qwen3.8-27b`):
+Set your Groq API key (and optionally override the default model, such as `openai/gpt-oss-120b`, `openai/gpt-oss-20b`, or `qwen/qwen3.8-27b`):
 
 ```bash
 export GROQ_API_KEY="your_groq_api_key_here"
@@ -79,7 +91,11 @@ export GROQ_MODEL="openai/gpt-oss-120b"
 
 *(On Windows PowerShell: `$env:GROQ_API_KEY="your_groq_api_key_here"`)*
 
-### 3. Run the Application
+---
+
+## Running the Application
+
+### Option A: Web Application (FastAPI + Groq)
 
 Start the FastAPI application using Uvicorn:
 
@@ -87,23 +103,48 @@ Start the FastAPI application using Uvicorn:
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Open your browser and navigate to `http://localhost:8000`.
+Open your browser and navigate to `http://localhost:8000` to interact with the web interface.
+
+#### API Endpoints
+- `GET /`: Serves the chatbot web UI (`static/index.html`).
+- `POST /chat`: Accepts JSON `{"message": "string", "session_id": "optional_string"}` and returns `{"response": "string", "session_id": "string"}`.
+- `GET /static/*`: Serves static assets (`chat.js`, `style.css`).
+
+### Option B: Interactive CLI Assistant (Ollama)
+
+To run the local terminal version powered by Ollama:
+
+1. Ensure Ollama is running and pull the model:
+   ```bash
+   ollama pull llama3.1:8b
+   ```
+2. Run the CLI script:
+   ```bash
+   python src/answerQuestion.py
+   ```
 
 ---
 
 ## Rebuilding the Vector Database & Ingestion Pipeline
 
-To re-scrape the latest rules and regenerate the FAISS index and SQLite metadata store:
+To re-scrape official MLB glossary pages, parse raw rule texts, and regenerate both the FAISS vector index and SQLite database:
 
 ```bash
-python src/rebuildVectorDatabase.py
+cd src
+python rebuildVectorDatabase.py
 ```
+
+This pipeline executes the following stages sequentially:
+1. `dataScraper.py`: Scrapes rule glossary pages from `https://www.mlb.com/glossary/rules` and writes `data/baseballrules.csv`.
+2. `AddBaseballRules.py`: Parses `data/BaseballRules.txt` and `data/Definition of Terms.txt`, appending chunks to `data/baseballrules.csv`.
+3. `vectordatabase.py`: Generates `all-MiniLM-L6-v2` embeddings, builds `databases/vector_index.faiss`, and exports `data/vector_metadata.csv`.
+4. `SQLConversion.py`: Reads `data/vector_metadata.csv` and populates the `rules` table in `databases/baseball_vectors.db`.
 
 ---
 
 ## Testing
 
-Execute the complete test suite using `pytest`:
+Execute the automated test suite using `pytest`:
 
 ```bash
 pytest tests/
