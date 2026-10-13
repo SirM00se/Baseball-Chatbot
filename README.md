@@ -95,6 +95,8 @@ export GROQ_MODEL="openai/gpt-oss-120b"
 
 *(On Windows PowerShell: `$env:GROQ_API_KEY="your_groq_api_key_here"`)*
 
+*(Note: Make sure that you use Groq model accessible to your plan.)*
+
 ---
 
 ## Running the Application
@@ -124,6 +126,7 @@ To run the local terminal version powered by Ollama:
    ```
 2. Run the CLI script:
    ```bash
+   cd src
    python src/answerQuestion.py
    ```
 
@@ -151,7 +154,7 @@ This pipeline executes the following stages sequentially:
 Execute the automated test suite using `pytest`:
 
 ```bash
-pytest tests/
+python -m pytest tests/
 ```
 
 ---
