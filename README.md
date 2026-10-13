@@ -130,6 +130,29 @@ To run the local terminal version powered by Ollama:
    python src/answerQuestion.py
    ```
 
+### Option C: Docker Container (FastAPI + Groq)
+
+You can containerize and run the full web application using Docker.
+
+#### 1. Build the Docker Image
+Pass your Groq API key at build time using the `--build-arg` flag:
+
+```bash
+docker build --build-arg GROQ_API_KEY="your_groq_api_key_here" -t baseball-chatbot .
+```
+
+#### 2. Run the Container
+Start the container and map port 8000:
+
+```bash
+docker run -p 8000:8000 baseball-chatbot
+```
+
+*(Note: You can also pass or override the API key at runtime if needed: `docker run -p 8000:8000 -e GROQ_API_KEY="your_groq_api_key_here" baseball-chatbot`)*
+
+#### 3. Access the Web App
+Open your browser and navigate to `http://localhost:8000`.
+
 ---
 
 ## Rebuilding the Vector Database & Ingestion Pipeline
