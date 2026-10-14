@@ -133,7 +133,7 @@ To run the local terminal version powered by Ollama:
 2. Run the CLI script:
    ```bash
    cd src
-   python src/answerQuestion.py
+   python answerQuestion.py
    ```
 
 ### Option C: Docker Container (FastAPI + Groq)
