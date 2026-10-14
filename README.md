@@ -73,7 +73,7 @@ Baseball-Chatbot/
 ### 2. Clone & Install Dependencies
 
 ```bash
-git clone https://github.com/blakelittlejohn/Baseball-Chatbot.git
+git clone https://github.com/SirM00se/Baseball-Chatbot.git
 cd Baseball-Chatbot
 
 # Create and activate virtual environment (recommended)
