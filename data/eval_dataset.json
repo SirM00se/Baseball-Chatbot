@@ -16,5 +16,137 @@
     "ground_truth_tag": "Designated Hitter",
     "ground_truth_url": "https://www.mlb.com/glossary/rules/designated-hitter",
     "ground_truth_answer": "If a DH plays defense, the team forfeits the DH role for the rest of the game."
+  },
+  {
+    "question": "What is the pitch timer rule in Major League Baseball?",
+    "ground_truth_tag": "Pitch Timer",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/pitch-timer",
+    "ground_truth_answer": "Pitchers are limited in how much time they have between pitches to begin their motion, and hitters must be in the batter's box and alert with time remaining on the timer."
+  },
+  {
+    "question": "What is catcher's interference and what is the penalty?",
+    "ground_truth_tag": "Catcher Interference",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/catcher-interference",
+    "ground_truth_answer": "Catcher's interference occurs when a catcher hinders or prevents a batter from swinging at a pitch, awarding the batter first base unless the offense chooses to accept the result of the play."
+  },
+  {
+    "question": "What is the three-batter minimum rule for pitchers?",
+    "ground_truth_tag": "Three-Batter Minimum",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/three-batter-minimum",
+    "ground_truth_answer": "Starting pitchers and relief pitchers must face at least three batters or pitch until the half-inning ends, unless they suffer an injury or illness."
+  },
+  {
+    "question": "What are the defensive shift limits regarding infielder positioning?",
+    "ground_truth_tag": "Defensive Shift Limits",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/defensive-shift-limits",
+    "ground_truth_answer": "All four infielders must be positioned within the outer boundary of the infield dirt, with at least two infielders completely on either side of second base when the pitch is released."
+  },
+  {
+    "question": "What is the strike zone definition in baseball?",
+    "ground_truth_tag": "Strike Zone",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/strike-zone",
+    "ground_truth_answer": "The strike zone is the area over home plate from the batter's midpoint between the shoulders and the top of the uniform pants down to the hollow beneath the kneecap."
+  },
+  {
+    "question": "What is a foul tip and is the ball live or dead?",
+    "ground_truth_tag": "Foul Tip",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/foul-tip",
+    "ground_truth_answer": "A foul tip is a batted ball that goes sharp and direct from the bat to the catcher's hands and is caught; the ball remains live and runners can steal."
+  },
+  {
+    "question": "What happens when spectator interference occurs?",
+    "ground_truth_tag": "Spectator Interference",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/spectator-interference",
+    "ground_truth_answer": "The ball is immediately dead, and umpires will award bases or impose outs that they judge would have occurred without the interference."
+  },
+  {
+    "question": "What constitutes a force play in baseball?",
+    "ground_truth_tag": "Force Play",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/force-play",
+    "ground_truth_answer": "A play in which a runner is legally obligated to advance to the next base because the batter became a runner."
+  },
+  {
+    "question": "What is the sliding rule at second base on double plays (Chase Utley rule)?",
+    "ground_truth_tag": "Slide Rule",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/slide-rule",
+    "ground_truth_answer": "Runners must make a bona fide slide directly into the base without deliberately changing their path or extending toward the fielder to initiate contact."
+  },
+  {
+    "question": "What are the rules regarding collisions at home plate (Buster Posey rule)?",
+    "ground_truth_tag": "Collisions at Home Plate",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/collisions-at-home-plate",
+    "ground_truth_answer": "A runner cannot deviate from their path to initiate contact with the catcher, and the catcher cannot block the pathway of the runner without possession of the ball."
+  },
+  {
+    "question": "What qualifies a player as a two-way player in MLB?",
+    "ground_truth_tag": "Two-Way Players",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/two-way-players",
+    "ground_truth_answer": "A player must pitch at least 20 Major League innings and play in at least 20 games as a position player or DH with at least three plate appearances in each game in either the current or preceding season."
+  },
+  {
+    "question": "How many mound visits is a team allowed per game?",
+    "ground_truth_tag": "Mound Visit",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/mound-visit",
+    "ground_truth_answer": "Teams are permitted a limited number of non-pitching-change mound visits per nine innings (typically four to five depending on the season rules), receiving an additional visit in extra innings."
+  },
+  {
+    "question": "What is the rule for ambidextrous pitchers (Pat Venditte rule)?",
+    "ground_truth_tag": "Ambidextrous Pitchers",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/ambidextrous-pitchers",
+    "ground_truth_answer": "An ambidextrous pitcher must visually indicate to the umpire and batter which hand they intend to pitch with before facing each batter and cannot switch hands during an at-bat unless injured."
+  },
+  {
+    "question": "What is defensive obstruction in baseball?",
+    "ground_truth_tag": "Obstruction",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/obstruction",
+    "ground_truth_answer": "Obstruction is an act by a fielder who, while not in possession of the ball and not in the act of fielding the ball, impedes the progress of any runner."
+  },
+  {
+    "question": "What happens when a batter bats out of turn and an appeal is made?",
+    "ground_truth_tag": "Batting Out of Turn",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/batting-out-of-turn",
+    "ground_truth_answer": "If appealed before a pitch to the next batter, the proper batter is called out and any advances or scores due to the improper batter's turn are nullified."
+  },
+  {
+    "question": "What are the rules regarding doctoring the baseball?",
+    "ground_truth_tag": "Doctoring the Baseball",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/doctoring-the-baseball",
+    "ground_truth_answer": "Pitchers are prohibited from applying foreign substances to the ball, spitting on it, scuffing, or otherwise defacing it, resulting in ejection and suspension."
+  },
+  {
+    "question": "What constitutes a fair ball versus a foul ball?",
+    "ground_truth_tag": "Fair Ball",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/fair-ball",
+    "ground_truth_answer": "A fair ball settles or is touched in fair territory between home and first base or home and third base, lands on or inside the foul lines beyond first or third base, or hits a foul pole."
+  },
+  {
+    "question": "What is an appeal play and how must it be executed?",
+    "ground_truth_tag": "Appeal Plays",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/appeal-plays",
+    "ground_truth_answer": "An appeal play is a play upon which an umpire cannot make a decision until requested by the defense, such as a missed base or tagging up too early, made before the next pitch or play."
+  },
+  {
+    "question": "What constitutes a regulation game when shortened by weather or curfew?",
+    "ground_truth_tag": "Regulation Game",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/regulation-game",
+    "ground_truth_answer": "A game becomes official and a regulation game if five innings have been completed, or four and a half innings if the home team is ahead."
+  },
+  {
+    "question": "What is the difference between the windup position and the set position for pitchers?",
+    "ground_truth_tag": "Windup Position",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/windup-position",
+    "ground_truth_answer": "In the windup position, the pitcher faces the batter with their pivot foot on or touching the rubber; in the set position (stretch), the pitcher stands facing the batter with the pivot foot parallel to the rubber."
+  },
+  {
+    "question": "How many manager challenges does a team receive for replay reviews?",
+    "ground_truth_tag": "Manager Challenge",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/manager-challenge",
+    "ground_truth_answer": "Each manager is allotted one challenge per game, retaining their challenge if the call is overturned on review, with additional umpire crew chief reviews permitted late in games."
+  },
+  {
+    "question": "What are the rules regarding rookie eligibility in Major League Baseball?",
+    "ground_truth_tag": "Rookie Eligibility",
+    "ground_truth_url": "https://www.mlb.com/glossary/rules/rookie-eligibility",
+    "ground_truth_answer": "A player is considered a rookie unless they have exceeded 130 at-bats, 50 innings pitched, or 45 days on an active Major League roster prior to September 1."
   }
 ]

@@ -190,6 +190,16 @@ python -m pytest tests/
 
 The repository includes an automated evaluation pipeline using the [Ragas](https://docs.ragas.io/) framework to assess retrieval and generation quality against a golden dataset (`data/eval_dataset.json`).
 
+### Evaluation Results (Before)
+
+| Metric | Score         |
+| :--- |:--------------|
+| **Eval Set Size** | 25 test cases |
+| **Context Precision** | 0.8418        |
+| **Context Recall** | 0.7267        |
+| **Faithfulness** | 0.8455        |
+| **Answer Relevancy** | 0.9402        |
+
 ### What It Does
 
 The `src/evaluate_ragas.py` script:
