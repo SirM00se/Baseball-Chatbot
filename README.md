@@ -56,7 +56,8 @@ Baseball-Chatbot/
 │   ├── test_rag_engine.py            # Unit and session-isolation tests for RAG engine
 │   └── test_units_dataScraper.py     # Unit tests for individual scraping helpers
 ├── ragas_results.csv                 # Exported evaluation metrics results
-└── requirements.txt                  # Python dependencies
+├── requirements.txt                  # Production & Docker runtime dependencies
+└── requirements-dev.txt              # Development, scraping, testing, and evaluation dependencies
 ```
 
 ---
@@ -79,8 +80,11 @@ cd Baseball-Chatbot
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install all required dependencies
+# Option 1: Install production dependencies only (for running the web chatbot)
 pip install -r requirements.txt
+
+# Option 2: Install full development dependencies (for development, tests, scraping, & evaluation)
+pip install -r requirements-dev.txt
 ```
 
 ### 3. Configure Environment Variables
