@@ -4,6 +4,8 @@ An end-to-end Retrieval-Augmented Generation (RAG) conversational assistant for 
 
 Live Demo: [baseballchatbot.org](https://baseballchatbot.org)
 
+*(Note: Current demo uses free tier Groq with 8000 tokens per minute)*
+
 ---
 
 ## Overview
@@ -200,6 +202,17 @@ The repository includes an automated evaluation pipeline using the [Ragas](https
 | **Faithfulness** | 0.8455        |
 | **Answer Relevancy** | 0.9402        |
 
+### Evaluation Results (After implementing Reranking)
+
+
+| Metric | Score         |
+| :--- |:--------------|
+| **Eval Set Size** | 25 test cases |
+| **Context Precision** | 0.8220        |
+| **Context Recall** | 0.7800        |
+| **Faithfulness** | 0.8521        |
+| **Answer Relevancy** | 0.9422        |
+*(Note: precision slightly lower, but satisfied with other results increasing)*
 ### What It Does
 
 The `src/evaluate_ragas.py` script:

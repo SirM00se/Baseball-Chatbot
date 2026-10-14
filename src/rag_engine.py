@@ -9,6 +9,7 @@ import re
 import logging
 from groq import Groq
 from contextlib import closing
+from sentence_transformers import CrossEncoder
 
 # logs unpredictable errors
 logger = logging.getLogger(__name__)
@@ -32,7 +33,6 @@ class SessionState:
         self.conversation_summary: str = ""
         self.turn_count: int = 0
 
-
 class RAGEngine:
     """
     Retrieval-Augmented Generation (RAG) Engine for baseball rules and glossary.
@@ -46,6 +46,7 @@ class RAGEngine:
         db_path: str = None,
         model_name: str = "all-MiniLM-L6-v2",
         groq_client: Groq = None,
+        reranker: CrossEncoder = None,
     ):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.faiss_path = faiss_path or os.path.join(base_dir, "..", "databases", "vector_index.faiss")
@@ -70,6 +71,28 @@ class RAGEngine:
         # Session-isolated memory storage
         self.sessions: dict[str, SessionState] = {}
 
+        self.reranker = reranker or CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+    def rerank_chunks(self, query: str, chunks: list[dict], top_n: int = 5) -> list[dict]:
+        """
+        Reorders retrieved chunks by cross-encoder relevance to the query.
+
+        :param query: standalone (rewritten) user question
+        :param chunks: chunk dicts from query_sqlite
+        :param top_n: number of chunks to keep
+        :return: top_n chunks sorted by rerank_score, highest first
+        """
+        if not chunks:
+            return []
+
+        rerank_scores = self.reranker.predict([(query, c["text"]) for c in chunks])
+
+        reranked = [
+            {**c, "rerank_score": float(s)} for c, s in zip(chunks, rerank_scores)
+        ]
+        reranked.sort(key=lambda c: c["rerank_score"], reverse=True)
+        return reranked[:top_n]
+
     def get_session(self, session_id: str) -> SessionState:
         """Retrieves or initializes state for a given session ID."""
         if session_id not in self.sessions:
@@ -88,7 +111,7 @@ class RAGEngine:
         ).astype("float32").reshape(1, -1)
         return embedding
 
-    def generate_ids(self, embedding: np.ndarray, k: int = 5):
+    def generate_ids(self, embedding: np.ndarray, k: int = 20):
         """
         Generates the closest vector IDs and distance scores in FAISS.
 
@@ -392,6 +415,10 @@ Rewrite following the rules:
 
         # Retrieve metadata for retrieved chunks
         chunks = self.query_sqlite(ids, scores)
+
+        # Rerank retrieved chunks
+        chunks = self.rerank_chunks(rewritten_question, chunks)
+
         if not chunks:
             answer = "I don't know."
             self.record_turn(session, rewritten_question, answer, target_model)
