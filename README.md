@@ -125,6 +125,7 @@ Open your browser and navigate to `http://localhost:8000` to interact with the w
 ### Option B: Interactive CLI Assistant (Ollama)
 
 To run the local terminal version powered by Ollama:
+*(This is a prototype of the Web application, and has a lot less features)*
 
 1. Ensure Ollama is running and pull the model:
    ```bash
@@ -140,21 +141,23 @@ To run the local terminal version powered by Ollama:
 
 You can containerize and run the full web application using Docker.
 
+Make sure Docker is installed and running on your machine. 
+
+*(See [Docker Documentation](https://docs.docker.com/get-docker/) for installation instructions.)*
+
 #### 1. Build the Docker Image
-Pass your Groq API key at build time using the `--build-arg` flag:
 
 ```bash
-docker build --build-arg GROQ_API_KEY="your_groq_api_key_here" -t baseball-chatbot .
+docker build -t baseball-chatbot .
 ```
 
 #### 2. Run the Container
+Pass your Groq API key at run time using the `-e` flag:
 Start the container and map port 8000:
 
 ```bash
-docker run -p 8000:8000 baseball-chatbot
+docker run -p 8000:8000 -e GROQ_API_KEY="your_groq_api_key_here" baseball-chatbot
 ```
-
-*(Note: You can also pass or override the API key at runtime if needed: `docker run -p 8000:8000 -e GROQ_API_KEY="your_groq_api_key_here" baseball-chatbot`)*
 
 #### 3. Access the Web App
 Open your browser and navigate to `http://localhost:8000`.

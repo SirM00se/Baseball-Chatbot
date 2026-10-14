@@ -4,9 +4,6 @@ FROM python:3.11-slim
 # Set working directory
 WORKDIR /app
 
-# Accept Groq API key at build time
-ARG GROQ_API_KEY
-ENV GROQ_API_KEY=$GROQ_API_KEY
 
 # Prevent Python from writing .pyc files and buffer stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
