@@ -215,6 +215,7 @@ The repository includes an automated evaluation pipeline using the [Ragas](https
 | **Context Recall** | 0.7800        |
 | **Faithfulness** | 0.8521        |
 | **Answer Relevancy** | 0.9422        |
+
 *(Note: precision slightly lower, but satisfied with other results increasing)*
 ### What It Does
 
