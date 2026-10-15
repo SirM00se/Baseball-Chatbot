@@ -57,6 +57,7 @@ Baseball-Chatbot/
 │   ├── test_integration_dataScraper.py # Integration tests for HTML parsing and web scraping
 │   ├── test_rag_engine.py            # Unit and session-isolation tests for RAG engine
 │   └── test_units_dataScraper.py     # Unit tests for individual scraping helpers
+├── Dockerfile                        # Docker file that builds an image of the Web Application 
 ├── ragas_results.csv                 # Exported evaluation metrics results
 ├── requirements.txt                  # Production & Docker runtime dependencies
 └── requirements-dev.txt              # Development, scraping, testing, and evaluation dependencies
